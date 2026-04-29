@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Menu Admin - {{ cafe.name }}{% endblock %}
+{% block page_id %}admin-menu{% endblock %}
+{% block admin_title %}Menu Items{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Admin</p>
+      <h1>Menu Manager</h1>
+    </div>
+  </section>
+
+  <section class="admin-layout">
+    <form id="categoryForm" class="admin-panel form-grid">
+      <h2>Add Category</h2>
+      <input name="name" placeholder="Category name" required>
+      <input name="display_order" type="number" min="0" value="0" aria-label="Display order">
+      <button class="button primary" type="submit">Add category</button>
+    </form>
+
+    <form id="menuItemForm" class="admin-panel form-grid">
+      <h2>Add Menu Item</h2>
+      <select name="category_id" id="itemCategorySelect" required></select>
+      <input name="name" placeholder="Item name" required>
+      <input name="price" type="number" min="0" step="0.01" placeholder="Price" required>
+      <textarea name="description" placeholder="Description"></textarea>
+      <input name="tags" placeholder="Tags, comma separated">
+      <label class="check-row"><input type="checkbox" name="is_veg" checked> Veg</label>
+      <label class="check-row"><input type="checkbox" name="is_bestseller"> Bestseller</label>
+      <label class="check-row"><input type="checkbox" name="is_available" checked> Available</label>
+      <button class="button primary" type="submit">Add item</button>
+    </form>
+  </section>
+
+  <section class="admin-panel">
+    <div class="section-title">
+      <div>
+        <h2>Items</h2>
+        <p id="menuAdminSummary" class="helper-text">Loading menu...</p>
+      </div>
+      <button class="button" id="refreshMenuAdmin" type="button">Refresh</button>
+    </div>
+    <div class="admin-filter-bar">
+      <input id="menuAdminSearch" type="search" placeholder="Search items, tags, descriptions" autocomplete="off">
+      <select id="menuAdminCategoryFilter" aria-label="Filter by category">
+        <option value="">All categories</option>
+      </select>
+    </div>
+    <div id="menuAdminList" class="admin-list"></div>
+  </section>
+{% endblock %}

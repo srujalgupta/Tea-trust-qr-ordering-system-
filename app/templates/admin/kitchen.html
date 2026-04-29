@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Kitchen Display - {{ cafe.name }}{% endblock %}
+{% block page_id %}admin-kitchen{% endblock %}
+{% block admin_title %}Kitchen Display{% endblock %}
+
+{% block content %}
+  <section class="page-heading kitchen-heading">
+    <div>
+      <p class="eyebrow">Live kitchen</p>
+      <h1>Kitchen Display</h1>
+      <p class="helper-text">Pending, preparing, and ready orders update live.</p>
+    </div>
+    <a class="button" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+  </section>
+
+  <section class="kitchen-board" aria-live="polite">
+    <article class="kitchen-column" data-kitchen-status="pending">
+      <header>
+        <h2>Pending</h2>
+        <strong id="kitchenPendingCount">0</strong>
+      </header>
+      <div id="kitchenPending" class="kitchen-order-list"></div>
+    </article>
+    <article class="kitchen-column" data-kitchen-status="preparing">
+      <header>
+        <h2>Preparing</h2>
+        <strong id="kitchenPreparingCount">0</strong>
+      </header>
+      <div id="kitchenPreparing" class="kitchen-order-list"></div>
+    </article>
+    <article class="kitchen-column" data-kitchen-status="ready">
+      <header>
+        <h2>Ready</h2>
+        <strong id="kitchenReadyCount">0</strong>
+      </header>
+      <div id="kitchenReady" class="kitchen-order-list"></div>
+    </article>
+  </section>
+{% endblock %}

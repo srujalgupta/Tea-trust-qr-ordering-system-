@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ cafe.name }}{% endblock %}
+{% block page_id %}admin-dashboard{% endblock %}
+{% block admin_title %}Dashboard{% endblock %}
+
+{% block content %}
+  <section class="metric-grid" data-table-count="{{ table_count }}">
+    <article class="metric-card metric-blue">
+      <span class="metric-icon">O</span>
+      <div>
+        <p>Total Orders</p>
+        <strong id="totalOrdersMetric">0</strong>
+        <small id="ordersTrend">Live dashboard</small>
+      </div>
+    </article>
+    <article class="metric-card metric-green">
+      <span class="metric-icon">R</span>
+      <div>
+        <p>Total Revenue</p>
+        <strong id="totalRevenueMetric">INR 0</strong>
+        <small>Cash and paid orders</small>
+      </div>
+    </article>
+    <article class="metric-card metric-orange">
+      <span class="metric-icon">P</span>
+      <div>
+        <p>Pending Orders</p>
+        <strong id="pendingOrdersMetric">0</strong>
+        <small>Needs kitchen action</small>
+      </div>
+    </article>
+    <article class="metric-card metric-purple">
+      <span class="metric-icon">T</span>
+      <div>
+        <p>Active Tables</p>
+        <strong id="activeTablesMetric">0 / {{ table_count }}</strong>
+        <small>QR tables online</small>
+      </div>
+    </article>
+  </section>
+
+  <section class="dashboard-panels">
+    <article class="dashboard-card sales-panel">
+      <header class="panel-header">
+        <h2>Sales Overview</h2>
+        <select id="salesRange" class="compact-input" aria-label="Sales range">
+          <option value="7">Last 7 Days</option>
+          <option value="14">Last 14 Days</option>
+        </select>
+      </header>
+      <div id="salesChart" class="sales-chart" aria-label="Sales chart"></div>
+    </article>
+
+    <article class="dashboard-card">
+      <header class="panel-header">
+        <h2>Top Selling Items</h2>
+        <span class="panel-link">Live</span>
+      </header>
+      <div id="topItemsList" class="top-items-list"></div>
+    </article>
+  </section>
+
+  <section class="dashboard-panels dashboard-panels-bottom">
+    <article class="dashboard-card recent-orders-panel">
+      <header class="panel-header">
+        <div>
+          <h2>Recent Orders</h2>
+          <p id="alertsStatus" class="helper-text">Sound alerts are off</p>
+        </div>
+        <div class="panel-controls">
+          <button id="enableAlertsButton" class="button mini-button" type="button">Enable sound</button>
+          <select id="orderStatusFilter" class="compact-input" aria-label="Filter orders by status">
+            <option value="">All statuses</option>
+            <option value="payment_pending">Payment pending</option>
+            <option value="pending">Pending</option>
+            <option value="preparing">Preparing</option>
+            <option value="ready">Ready</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </header>
+      <div class="table-wrap">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Table</th>
+              <th>Items</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Time</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="recentOrdersBody"></tbody>
+        </table>
+      </div>
+      <section id="ordersBoard" class="orders-grid compact-orders" aria-live="polite"></section>
+    </article>
+
+    <article class="dashboard-card tokens-panel">
+      <header class="panel-header">
+        <h2>Today's Tokens</h2>
+        <span class="panel-link">Today</span>
+      </header>
+      <div class="token-summary">
+        <div>
+          <span>Last Token</span>
+          <strong id="lastTokenMetric">#0000</strong>
+        </div>
+        <div>
+          <span>Total Tokens</span>
+          <strong id="totalTokensMetric">0</strong>
+        </div>
+      </div>
+      <div class="token-progress-row">
+        <span>Token Status</span>
+        <strong id="tokenPercentMetric">0%</strong>
+      </div>
+      <div class="token-progress">
+        <span id="tokenProgressBar"></span>
+      </div>
+      <div class="token-state-grid">
+        <div><span class="dot dot-green"></span>Completed<strong id="completedTokensMetric">0</strong></div>
+        <div><span class="dot dot-orange"></span>Pending<strong id="pendingTokensMetric">0</strong></div>
+        <div><span class="dot dot-red"></span>Cancelled<strong id="cancelledTokensMetric">0</strong></div>
+      </div>
+    </article>
+  </section>
+
+  <dialog id="orderDetailDialog" class="modal-dialog">
+    <form method="dialog" class="modal-shell">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow">Order detail</p>
+          <h2 id="orderDetailTitle">Order</h2>
+        </div>
+        <button class="icon-button" value="cancel" type="submit" aria-label="Close order detail">Close</button>
+      </header>
+      <div id="orderDetailBody" class="modal-body"></div>
+    </form>
+  </dialog>
+{% endblock %}

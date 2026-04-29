@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}{{ cafe.name }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=17">
+  </head>
+  <body data-page="{% block page_id %}{% endblock %}">
+    {% if current_user.is_authenticated and current_user.is_admin %}
+      <div class="admin-app">
+        <aside class="admin-sidebar" aria-label="Admin navigation">
+          <a class="admin-brand" href="{{ url_for('admin.dashboard') }}">
+            <span class="admin-brand-mark">
+              <img class="admin-brand-logo" src="{{ url_for('static', filename='brand/tea_trust_logo.png') }}" alt="{{ cafe.name }} logo">
+            </span>
+            <span>
+              <strong>{{ cafe.name }}</strong>
+              <small>Admin Panel</small>
+            </span>
+          </a>
+
+          <nav class="admin-nav">
+            <a class="admin-nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}" href="{{ url_for('admin.dashboard') }}">
+              <span class="nav-icon">D</span>
+              Dashboard
+            </a>
+            <p class="nav-section">Manage</p>
+            <a class="admin-nav-link {% if request.endpoint == 'admin.menu_manager' %}active{% endif %}" href="{{ url_for('admin.menu_manager') }}">
+              <span class="nav-icon">M</span>
+              Menu Items
+            </a>
+            <a class="admin-nav-link {% if request.endpoint == 'admin.table_manager' %}active{% endif %}" href="{{ url_for('admin.table_manager') }}">
+              <span class="nav-icon">T</span>
+              Tables
+            </a>
+            <a class="admin-nav-link {% if request.endpoint == 'admin.kitchen_display' %}active{% endif %}" href="{{ url_for('admin.kitchen_display') }}">
+              <span class="nav-icon">K</span>
+              Kitchen
+            </a>
+            <a class="admin-nav-link {% if request.endpoint == 'admin.analytics' %}active{% endif %}" href="{{ url_for('admin.analytics') }}">
+              <span class="nav-icon">A</span>
+              Analytics
+            </a>
+            <p class="nav-section">System</p>
+            <a class="admin-nav-link {% if request.endpoint == 'admin.settings' %}active{% endif %}" href="{{ url_for('admin.settings') }}">
+              <span class="nav-icon">S</span>
+              Settings
+            </a>
+            <a class="admin-nav-link" href="{{ url_for('customer.menu') }}">
+              <span class="nav-icon">V</span>
+              Storefront
+            </a>
+            <form method="post" action="{{ url_for('admin.logout') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="admin-nav-link admin-nav-button" type="submit">
+                <span class="nav-icon">L</span>
+                Logout
+              </button>
+            </form>
+          </nav>
+        </aside>
+
+        <div class="admin-main">
+          <header class="admin-topbar">
+            <div class="admin-title-row">
+              <span class="admin-menu-glyph" aria-hidden="true"></span>
+              <strong>{% block admin_title %}Dashboard{% endblock %}</strong>
+            </div>
+            <div class="admin-userbar">
+              <span class="date-pill">{{ today_label }}</span>
+              <span class="admin-avatar">A</span>
+              <span class="admin-user-text">
+                <strong>{{ current_user.username }}</strong>
+                <small>Super Admin</small>
+              </span>
+            </div>
+          </header>
+
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              <section class="flash-stack admin-flashes">
+                {% for category, message in messages %}
+                  <p class="flash flash-{{ category }}">{{ message }}</p>
+                {% endfor %}
+              </section>
+            {% endif %}
+          {% endwith %}
+
+          <main class="shell admin-content">
+    {% else %}
+      {% set active_table = table if table is defined and table else none %}
+      <header class="topbar">
+        <a class="brand" href="{{ url_for('customer.menu', table=active_table.id) if active_table else url_for('customer.menu') }}">
+          <img class="brand-mark" src="{{ url_for('static', filename='brand/tea_trust_logo.png') }}" alt="" aria-hidden="true">
+          <span>
+            <strong>{{ cafe.name }}</strong>
+            {% if active_table %}
+              <small>Ordering for {{ active_table.label }}</small>
+            {% endif %}
+          </span>
+        </a>
+        <nav class="topnav">
+          <a href="{{ url_for('customer.menu', table=active_table.id) if active_table else url_for('customer.menu') }}">Menu</a>
+          <a href="{{ url_for('customer.cart', table=active_table.id) if active_table else url_for('customer.cart') }}">Cart</a>
+          <a href="{{ url_for('admin.login') }}">Admin</a>
+        </nav>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <section class="flash-stack">
+            {% for category, message in messages %}
+              <p class="flash flash-{{ category }}">{{ message }}</p>
+            {% endfor %}
+          </section>
+        {% endif %}
+      {% endwith %}
+
+      <main class="shell">
+    {% endif %}
+        {% block content %}{% endblock %}
+      </main>
+    {% if current_user.is_authenticated and current_user.is_admin %}
+        </div>
+      </div>
+    {% endif %}
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" defer></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=17" defer></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

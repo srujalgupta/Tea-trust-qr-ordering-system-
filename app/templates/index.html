@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}{{ cafe.name }}{% endblock %}
+{% block page_id %}home{% endblock %}
+
+{% block content %}
+  <section class="hero-panel">
+    <img class="brand-logo" src="{{ url_for('static', filename='brand/tea_trust_logo.png') }}" alt="{{ cafe.name }} logo">
+    <p class="eyebrow">{{ cafe.subtitle }}</p>
+    <h1>{{ cafe.name }}</h1>
+    <p>{{ cafe.tagline }} ordering is ready with menu, cart, token tracking, admin dashboard, payments, and table QR flow.</p>
+    <div class="hero-actions">
+      <a class="button primary" href="{{ url_for('customer.menu') }}">Open menu</a>
+      <a class="button" href="{{ url_for('admin.login') }}">Admin login</a>
+      <a class="button ghost" href="{{ url_for('health.health_check') }}">Health check</a>
+    </div>
+  </section>
+{% endblock %}

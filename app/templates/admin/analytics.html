@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - {{ cafe.name }}{% endblock %}
+{% block page_id %}admin-analytics{% endblock %}
+{% block admin_title %}Analytics{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Admin</p>
+      <h1>Analytics</h1>
+    </div>
+    <div class="panel-controls">
+      <select id="analyticsRange" class="compact-input" aria-label="Analytics range">
+        <option value="7">Last 7 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+      <a class="button" href="{{ url_for('api.admin_orders_export') }}">Export orders CSV</a>
+    </div>
+  </section>
+
+  <section class="metric-grid analytics-metrics">
+    <article class="metric-card metric-blue">
+      <span class="metric-icon">R</span>
+      <div>
+        <p>Revenue</p>
+        <strong id="analyticsRevenue">INR 0</strong>
+        <small>Paid and cash orders</small>
+      </div>
+    </article>
+    <article class="metric-card metric-green">
+      <span class="metric-icon">O</span>
+      <div>
+        <p>Orders</p>
+        <strong id="analyticsOrders">0</strong>
+        <small id="analyticsAov">Average INR 0</small>
+      </div>
+    </article>
+    <article class="metric-card metric-orange">
+      <span class="metric-icon">H</span>
+      <div>
+        <p>Peak Hour</p>
+        <strong id="analyticsPeakHour">--</strong>
+        <small>By order count</small>
+      </div>
+    </article>
+    <article class="metric-card metric-purple">
+      <span class="metric-icon">T</span>
+      <div>
+        <p>Avg Prep</p>
+        <strong id="analyticsPrepTime">--</strong>
+        <small>Completed orders</small>
+      </div>
+    </article>
+  </section>
+
+  <section class="dashboard-panels">
+    <article class="dashboard-card">
+      <header class="panel-header">
+        <h2>Revenue by Day</h2>
+      </header>
+      <div id="analyticsDailyChart" class="sales-chart"></div>
+    </article>
+
+    <article class="dashboard-card">
+      <header class="panel-header">
+        <h2>Top Items</h2>
+      </header>
+      <div id="analyticsTopItems" class="top-items-list"></div>
+    </article>
+  </section>
+
+  <section class="dashboard-card">
+    <header class="panel-header">
+      <h2>Hourly Orders</h2>
+    </header>
+    <div id="analyticsHourly" class="hourly-grid"></div>
+  </section>
+{% endblock %}

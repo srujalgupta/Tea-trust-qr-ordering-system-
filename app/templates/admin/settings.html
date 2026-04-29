@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - {{ cafe.name }}{% endblock %}
+{% block page_id %}admin-settings{% endblock %}
+{% block admin_title %}Settings{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">System</p>
+      <h1>Settings</h1>
+    </div>
+  </section>
+
+  <section class="settings-grid">
+    <form class="admin-panel form-grid" method="post" action="{{ url_for('admin.change_password') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <h2>Change Admin Password</h2>
+      <label>
+        Current password
+        <input name="current_password" type="password" autocomplete="current-password" required>
+      </label>
+      <label>
+        New password
+        <input name="new_password" type="password" autocomplete="new-password" minlength="10" required>
+      </label>
+      <label>
+        Confirm new password
+        <input name="confirm_password" type="password" autocomplete="new-password" minlength="10" required>
+      </label>
+      <button class="button primary" type="submit">Update password</button>
+    </form>
+
+    <section class="admin-panel">
+      <h2>Cafe Settings</h2>
+      <div class="settings-list">
+        <p><strong>Cafe name</strong><span>{{ cafe.name }}</span></p>
+        <p><strong>Phone</strong><span>{{ cafe.phone }}</span></p>
+        <p><strong>Table count</strong><span>{{ table_count }}</span></p>
+        <p><strong>Database</strong><span>{{ database_label }}</span></p>
+        <p><strong>Environment</strong><span>{{ environment_name }}</span></p>
+      </div>
+      <p class="helper-text">Edit cafe values in `.env`, then restart the server and run seed-data when table count changes.</p>
+    </section>
+  </section>
+
+  <section class="dashboard-panels">
+    <article class="dashboard-card">
+      <header class="panel-header">
+        <h2>Backup Exports</h2>
+      </header>
+      <div class="export-actions">
+        <a class="button" href="{{ url_for('api.admin_orders_export') }}">Download orders CSV</a>
+        <a class="button" href="{{ url_for('api.admin_menu_export') }}">Download menu CSV</a>
+      </div>
+    </article>
+
+    <article class="dashboard-card">
+      <header class="panel-header">
+        <h2>Production Checklist</h2>
+      </header>
+      <div class="checklist">
+        <label class="check-row"><input type="checkbox" disabled {% if environment_name == "production" %}checked{% endif %}> Production config enabled</label>
+        <label class="check-row"><input type="checkbox" disabled {% if secret_configured %}checked{% endif %}> Strong secret key set</label>
+        <label class="check-row"><input type="checkbox" disabled {% if database_configured %}checked{% endif %}> Database URL configured</label>
+        <label class="check-row"><input type="checkbox" disabled {% if password_changed %}checked{% endif %}> Default admin password changed</label>
+        <label class="check-row"><input type="checkbox" disabled {% if socketio_eventlet %}checked{% endif %}> SocketIO eventlet mode set</label>
+      </div>
+    </article>
+  </section>
+{% endblock %}

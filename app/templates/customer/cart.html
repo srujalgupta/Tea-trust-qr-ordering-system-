@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}{% if checkout_mode %}Checkout{% else %}Cart{% endif %} - {{ cafe.name }}{% endblock %}
+{% block page_id %}{% if checkout_mode %}customer-checkout{% else %}customer-cart{% endif %}{% endblock %}
+
+{% block content %}
+  <section class="cart-page-shell" data-table-id="{{ table.id if table else '' }}" data-mode="{% if checkout_mode %}checkout{% else %}cart{% endif %}">
+    <div class="cart-page-heading">
+      <div>
+        <p class="eyebrow">{% if table %}Ordering for {{ table.label }}{% else %}Your order{% endif %}</p>
+        <h1>{% if checkout_mode %}Checkout{% else %}Your Cart{% endif %}</h1>
+        <p>{% if checkout_mode %}Review your items, add your details, and place the order.{% else %}Review your items before checkout.{% endif %}</p>
+      </div>
+      <a class="button" id="continueMenuLink" href="{{ url_for('customer.menu') }}">Back to menu</a>
+    </div>
+
+    <section class="{% if checkout_mode %}checkout-layout{% else %}cart-page-layout{% endif %}">
+      <aside id="cartPanel" class="cart-panel cart-page-panel" tabindex="-1">
+        <div class="section-title">
+          <h2>Items</h2>
+          <button id="clearCart" class="icon-button" type="button" title="Clear cart">Clear</button>
+        </div>
+        <p id="cartItemSummary" class="receipt-summary helper-text">0 items</p>
+        <div id="cartItems" class="cart-items cart-page-items"></div>
+        <div class="receipt-lines" aria-label="Order receipt">
+          <div>
+            <span>Item subtotal</span>
+            <strong id="cartSubtotal">INR 0.00</strong>
+          </div>
+          <div>
+            <span>Taxes</span>
+            <strong>INR 0.00</strong>
+          </div>
+        </div>
+        <div class="cart-total receipt-total">
+          <span>Total payable</span>
+          <strong id="cartTotal">INR 0.00</strong>
+        </div>
+        {% if not checkout_mode %}
+          <div class="cart-page-actions">
+            <a class="button" id="cartBackToMenu" href="{{ url_for('customer.menu') }}">Add more items</a>
+            <button id="checkoutPageButton" class="button primary" type="button">Checkout now</button>
+          </div>
+        {% endif %}
+        <p id="cartMessage" class="helper-text" role="status"></p>
+      </aside>
+
+      {% if checkout_mode %}
+        <section class="admin-panel checkout-panel">
+          <h2>Checkout Details</h2>
+          <label>
+            Name
+            <input id="customerName" autocomplete="name">
+          </label>
+          <label>
+            Phone
+            <input id="customerPhone" autocomplete="tel">
+          </label>
+          <p id="checkoutWaitEstimate" class="checkout-estimate">Estimated wait: 12-18 minutes</p>
+          <label>
+            Notes
+            <textarea id="orderNotes"></textarea>
+          </label>
+          <div class="segmented">
+            <label><input type="radio" name="paymentMethod" value="cash" checked> Cash</label>
+            <label><input type="radio" name="paymentMethod" value="razorpay"> Online</label>
+          </div>
+          <button id="placeOrder" class="button primary full-width" type="button">Place order</button>
+        </section>
+      {% endif %}
+    </section>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+{% endblock %}

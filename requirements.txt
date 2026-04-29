@@ -1,0 +1,17 @@
+Flask>=3.0
+Werkzeug>=3.0
+SQLAlchemy>=2.0
+Flask-SQLAlchemy>=3.1
+Flask-Migrate>=4.0
+Flask-Login>=0.6
+Flask-SocketIO>=5.3
+python-dotenv>=1.0
+psycopg2-binary>=2.9
+razorpay>=1.4
+gunicorn>=21.0
+eventlet>=0.35
+Flask-WTF>=1.2
+WTForms>=3.1
+Flask-Limiter>=3.5
+Pillow>=10.0
+pytest>=8.0

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Tables - {{ cafe.name }}{% endblock %}
+{% block page_id %}admin-tables{% endblock %}
+{% block admin_title %}Tables{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Admin</p>
+      <h1>Table QR Links</h1>
+      <p class="helper-text">Download or print a table QR that opens the table-aware menu link.</p>
+    </div>
+    <button id="tablesPrintAll" class="button" type="button">Print all QR codes</button>
+  </section>
+
+  <form id="tableForm" class="admin-panel form-grid compact-form">
+    <input name="table_number" type="number" min="1" max="{{ table_count }}" placeholder="Table number" required>
+    <input name="label" placeholder="Label">
+    <button class="button primary" type="submit">Add table</button>
+  </form>
+
+  <section id="tablesList" class="admin-list"></section>
+{% endblock %}
