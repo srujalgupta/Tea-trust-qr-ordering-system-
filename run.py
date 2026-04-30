@@ -14,4 +14,5 @@ if __name__ == "__main__":
         port=port,
         debug=app.config["DEBUG"],
         use_reloader=False,
+        allow_unsafe_werkzeug=True,
     )
