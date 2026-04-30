@@ -5,10 +5,10 @@ from sqlalchemy.orm import selectinload
 
 from app.extensions import db
 from app.models import CafeTable, MenuItem, Order, OrderItem
-from app.models.constants import ORDER_STATUSES, PAYMENT_METHODS, TOKEN_STATUSES
+from app.models.constants import ORDER_STATUSES, TOKEN_STATUSES
 from .errors import NotFoundError, ValidationError
 from .notification_service import send_order_confirmation, send_order_ready
-from .payment_service import apply_checkout_success, create_cash_payment, create_gateway_payment
+from .payment_service import apply_checkout_success, create_cash_payment
 from .pos_service import send_order_to_pos
 from .realtime_service import emit_order_created, emit_order_updated
 from .serializers import serialize_order
@@ -79,8 +79,8 @@ def create_order(data, config):
     table = _get_active_table(data.get("table_id"))
 
     payment_method = (data.get("payment_method") or "cash").strip().lower()
-    if payment_method not in PAYMENT_METHODS:
-        raise ValidationError("payment_method must be cash or razorpay.")
+    if payment_method != "cash":
+        raise ValidationError("Online payment is disabled. Customers pay directly at the store.")
 
     subtotal = Decimal("0.00")
     order_notes = (data.get("notes") or "").strip()[:1000]
@@ -101,8 +101,8 @@ def create_order(data, config):
         notes=order_notes,
         currency=config["PAYMENT_CURRENCY"],
         payment_method=payment_method,
-        payment_status="created" if payment_method == "razorpay" else "cash_pending",
-        status="payment_pending" if payment_method == "razorpay" else "pending",
+        payment_status="cash_pending",
+        status="pending",
     )
     db.session.add(order)
 
@@ -126,21 +126,14 @@ def create_order(data, config):
     order.total_amount = subtotal
     db.session.flush()
 
-    payment_payload = None
-    if payment_method == "cash":
-        create_cash_payment(order)
-        generate_daily_token_for_order(order)
-    else:
-        _, payment_payload = create_gateway_payment(order, config)
+    create_cash_payment(order)
+    generate_daily_token_for_order(order)
 
     db.session.commit()
 
-    if payment_method == "cash":
-        after_order_confirmed(order, config)
-    else:
-        emit_order_created(order)
+    after_order_confirmed(order, config)
 
-    return order, payment_payload
+    return order, None
 
 
 def get_order(order_id):
@@ -227,6 +220,11 @@ def update_order_status(order_id, status, config, cancellation_reason=None):
             for payment in order.payments:
                 if payment.status == "paid":
                     payment.status = "refunded"
+    elif status == "completed" and order.payment_method == "cash" and order.payment_status == "cash_pending":
+        order.payment_status = "paid"
+        for payment in order.payments:
+            if payment.provider == "cash" and payment.status == "cash_pending":
+                payment.status = "paid"
     if status in TOKEN_STATUSES:
         sync_token_status(order, status)
     db.session.commit()

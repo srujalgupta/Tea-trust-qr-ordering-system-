@@ -551,61 +551,6 @@ function initCustomerCartPage() {
     }
   }
 
-  async function verifyMockPayment(order, payment) {
-    cartMessage.textContent = "Confirming mock payment...";
-    const confirmed = await apiFetch("/api/v1/payments/razorpay/verify", {
-      method: "POST",
-      body: {
-        provider_order_id: payment.provider_order_id,
-        provider_payment_id: `mock_pay_${Date.now()}`,
-      },
-    });
-    cart = {};
-    itemNotes = {};
-    saveCart();
-    saveItemNotes();
-    window.location.href = `/order/${confirmed.id || order.id}`;
-  }
-
-  function openRazorpayCheckout(order, payment) {
-    if (payment.mode === "mock" || !window.Razorpay) {
-      verifyMockPayment(order, payment).catch((error) => {
-        cartMessage.textContent = error.message;
-      });
-      return;
-    }
-
-    const checkout = new window.Razorpay({
-      key: payment.key_id,
-      amount: payment.amount,
-      currency: payment.currency,
-      name: cafeName,
-      description: order.order_number,
-      order_id: payment.provider_order_id,
-      handler: async (response) => {
-        const confirmed = await apiFetch("/api/v1/payments/razorpay/verify", {
-          method: "POST",
-          body: {
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature,
-          },
-        });
-        cart = {};
-        itemNotes = {};
-        saveCart();
-        saveItemNotes();
-        window.location.href = `/order/${confirmed.id}`;
-      },
-      modal: {
-        ondismiss: () => {
-          cartMessage.textContent = "Payment was not completed. Your order is waiting for payment.";
-        },
-      },
-    });
-    checkout.open();
-  }
-
   async function placeOrder() {
     const orderItems = Object.entries(cart)
       .filter(([id, quantity]) => quantity > 0 && items.some((item) => String(item.id) === String(id)))
@@ -622,7 +567,6 @@ function initCustomerCartPage() {
     placeOrderButton.disabled = true;
     cartMessage.textContent = "Creating order...";
     try {
-      const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || "cash";
       const customerName = document.getElementById("customerName").value;
       const customerPhone = document.getElementById("customerPhone").value;
       localStorage.setItem(customerKey, JSON.stringify({
@@ -636,20 +580,16 @@ function initCustomerCartPage() {
           customer_name: customerName,
           customer_phone: customerPhone,
           notes: document.getElementById("orderNotes").value,
-          payment_method: paymentMethod,
+          payment_method: "cash",
           items: orderItems,
         },
       });
 
-      if (order.payment) {
-        openRazorpayCheckout(order, order.payment);
-      } else {
-        cart = {};
-        itemNotes = {};
-        saveCart();
-        saveItemNotes();
-        window.location.href = `/order/${order.id}`;
-      }
+      cart = {};
+      itemNotes = {};
+      saveCart();
+      saveItemNotes();
+      window.location.href = `/order/${order.id}`;
     } catch (error) {
       cartMessage.textContent = error.message;
       placeOrderButton.disabled = false;
@@ -723,22 +663,57 @@ function initCustomerCartPage() {
   });
 }
 
-function orderDetailsHtml(order) {
-  const lines = order.items.map((item) => (
+function paymentLabel(order) {
+  if (order.payment_method === "cash" && order.payment_status === "cash_pending") {
+    return "Pay at store";
+  }
+  if (order.payment_method === "cash" && order.payment_status === "paid") {
+    return "Paid at store";
+  }
+  return String(order.payment_status || "pending").replaceAll("_", " ");
+}
+
+function receiptHtml(order, options = {}) {
+  const lines = (order.items || []).map((item) => (
     `<div class="receipt-item">
       <span>${escapeHtml(item.item_name)} x ${item.quantity}</span>
       <strong>${money(item.line_total)}</strong>
     </div>`
   )).join("");
+  const customerRows = options.showCustomer
+    ? `<p><strong>Customer</strong><span>${escapeHtml(order.customer_name || "Guest")}</span></p>
+       <p><strong>Phone</strong><span>${escapeHtml(order.customer_phone || "Not shared")}</span></p>`
+    : "";
   return `
-    <div class="order-detail-grid">
-      <p><strong>Status</strong><span>${escapeHtml(order.status.replaceAll("_", " "))}</span></p>
-      <p><strong>Payment</strong><span>${escapeHtml(order.payment_status.replaceAll("_", " "))}</span></p>
-      <p><strong>Table</strong><span>${escapeHtml(order.table_label || "Takeaway")}</span></p>
-      <p><strong>Total</strong><span>${money(order.total_amount)}</span></p>
-    </div>
-    <div class="receipt-items">${lines}</div>
+    <section class="receipt-card">
+      <header class="receipt-header">
+        <div>
+          <p class="eyebrow">Receipt</p>
+          <h2>${escapeHtml(cafeName)}</h2>
+          <span>${escapeHtml(order.order_number)}</span>
+        </div>
+        <strong>${order.token_number ? `Token ${order.token_number}` : "Token pending"}</strong>
+      </header>
+      <div class="order-detail-grid receipt-meta-grid">
+        <p><strong>Status</strong><span>${escapeHtml(order.status.replaceAll("_", " "))}</span></p>
+        <p><strong>Payment</strong><span>${escapeHtml(paymentLabel(order))}</span></p>
+        <p><strong>Table</strong><span>${escapeHtml(order.table_label || "Takeaway")}</span></p>
+        <p><strong>Total</strong><span>${money(order.total_amount)}</span></p>
+        ${customerRows}
+      </div>
+      <div class="receipt-items">${lines}</div>
+      <div class="receipt-lines receipt-total-lines">
+        <div><span>Item subtotal</span><strong>${money(order.subtotal_amount)}</strong></div>
+        <div><span>Taxes</span><strong>${money(order.tax_amount)}</strong></div>
+        <div class="receipt-grand-total"><span>Total payable</span><strong>${money(order.total_amount)}</strong></div>
+      </div>
+      <p class="receipt-payment-note">${order.payment_status === "paid" ? "Payment received at store." : "Payment pending at store counter."}</p>
+    </section>
   `;
+}
+
+function orderDetailsHtml(order) {
+  return receiptHtml(order);
 }
 
 function estimatedWaitLabel(order) {
@@ -746,7 +721,7 @@ function estimatedWaitLabel(order) {
   if (order.status === "completed") return "Completed";
   if (order.status === "cancelled") return "Order cancelled";
   if (order.status === "preparing") return "Estimated wait: 8-12 minutes";
-  if (order.status === "payment_pending") return "Confirm payment to receive a token";
+  if (order.status === "payment_pending") return "Payment confirmation pending";
   return "Estimated wait: 12-18 minutes";
 }
 
@@ -761,6 +736,7 @@ function whatsappConfirmationUrl(order) {
     table,
     `Items: ${items}`,
     `Total: ${money(order.total_amount)}`,
+    "Payment: Pay at store",
   ].join("\n");
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
 }
@@ -774,12 +750,18 @@ function initOrderStatus() {
   const details = document.getElementById("orderStatusDetails");
   const estimatedWait = document.getElementById("estimatedWait");
   const whatsAppLink = document.getElementById("whatsAppConfirmLink");
+  const paymentNotice = document.getElementById("paymentNotice");
 
   function render(order) {
     tokenNumber.textContent = order.token_number ? `Token ${order.token_number}` : "Payment pending";
     tokenStatus.textContent = order.status.replaceAll("_", " ");
     tokenStatus.className = `status-pill status-${order.status}`;
     estimatedWait.textContent = estimatedWaitLabel(order);
+    if (paymentNotice) {
+      paymentNotice.textContent = order.payment_status === "paid"
+        ? "Payment received at store. Thank you."
+        : "Payment at store. Please pay directly at the counter when collecting your order.";
+    }
     whatsAppLink.href = whatsappConfirmationUrl(order);
     details.innerHTML = orderDetailsHtml(order);
   }
@@ -813,11 +795,15 @@ function initAdminDashboard() {
   const orderDialog = document.getElementById("orderDetailDialog");
   const orderDetailTitle = document.getElementById("orderDetailTitle");
   const orderDetailBody = document.getElementById("orderDetailBody");
+  const externalOrderForm = document.getElementById("externalOrderForm");
+  const externalOrdersBoard = document.getElementById("externalOrdersBoard");
+  const externalOrdersMetric = document.getElementById("externalOrdersMetric");
   const tableLimit = Number(dashboard?.dataset.tableCount || 0);
   const statusValues = ["pending", "preparing", "ready", "completed", "cancelled"];
   const seenOrdersKey = "qrCafeSeenOrders";
   let orders = [];
   let tables = [];
+  let externalOrders = [];
   let isLoading = false;
   let dashboardDataSignature = "";
   let seenOrderIds = new Set(JSON.parse(localStorage.getItem(seenOrdersKey) || "[]"));
@@ -886,10 +872,10 @@ function initAdminDashboard() {
     window.setTimeout(stopKitchenToneLoop, durationMs + 250);
   }
 
-  function announceNewOrder() {
+  function announceNewOrder(messageText = "New order") {
     if (!alertsEnabled || !("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) return;
     window.speechSynthesis.cancel();
-    const message = new SpeechSynthesisUtterance("New order");
+    const message = new SpeechSynthesisUtterance(messageText);
     message.lang = "en-IN";
     message.rate = 0.95;
     message.pitch = 1.05;
@@ -902,6 +888,14 @@ function initAdminDashboard() {
     const itemCount = (order.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
     new Notification(`New order ${order.order_number}`, {
       body: `${order.table_label || "No table"} - ${itemCount} item${itemCount === 1 ? "" : "s"} - ${money(order.total_amount)}`,
+      icon: "/static/brand/tea_trust_logo.png",
+    });
+  }
+
+  function showExternalOrderNotification(order) {
+    if (!alertsEnabled || !("Notification" in window) || Notification.permission !== "granted") return;
+    new Notification(`New ${order.platform_label} order`, {
+      body: `${order.platform_order_id} - ${money(order.total_amount)}`,
       icon: "/static/brand/tea_trust_logo.png",
     });
   }
@@ -979,6 +973,60 @@ function initAdminDashboard() {
     await load();
   }
 
+  function externalStatusButtons(order) {
+    const actions = [];
+    if (order.status === "pending") {
+      actions.push(["preparing", "Accept"]);
+      actions.push(["cancelled", "Cancel"]);
+    } else if (order.status === "preparing") {
+      actions.push(["ready", "Ready"]);
+      actions.push(["cancelled", "Cancel"]);
+    } else if (order.status === "ready") {
+      actions.push(["completed", "Complete"]);
+    }
+    return actions.map(([status, label]) => (
+      `<button class="button mini-button ${status === "cancelled" ? "danger" : ""}" data-external-status="${status}" data-external-order="${escapeHtml(order.id)}" type="button">${label}</button>`
+    )).join("");
+  }
+
+  async function updateExternalOrderStatus(orderId, status) {
+    await apiFetch(`/api/v1/admin/external-orders/${encodeURIComponent(orderId)}`, {
+      method: "PATCH",
+      body: { status },
+    });
+    await load();
+  }
+
+  function renderExternalOrders() {
+    if (!externalOrdersBoard) return;
+    const active = externalOrders.filter((order) => ["pending", "preparing", "ready"].includes(order.status));
+    if (externalOrdersMetric) {
+      externalOrdersMetric.textContent = `${active.length} active`;
+    }
+    externalOrdersBoard.innerHTML = externalOrders.slice(0, 8).map((order) => {
+      const items = (order.items || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+      return `
+        <article class="external-order-card status-${escapeHtml(order.status)}">
+          <header>
+            <div>
+              <strong>${escapeHtml(order.platform_label)}</strong>
+              <p class="helper-text">${escapeHtml(order.platform_order_id)}</p>
+            </div>
+            <span class="status-pill status-${escapeHtml(order.status)}">${escapeHtml(order.status.replaceAll("_", " "))}</span>
+          </header>
+          <div class="external-order-meta">
+            <span>${escapeHtml(order.customer_name || "Delivery customer")}</span>
+            <strong>${money(order.total_amount)}</strong>
+          </div>
+          <ul>${items}</ul>
+          <div class="order-actions">
+            ${externalStatusButtons(order) || `<p class="helper-text">No quick actions for this status.</p>`}
+          </div>
+        </article>
+      `;
+    }).join("") || `<p class="helper-text">No Zomato or Swiggy orders added yet.</p>`;
+  }
+
   function orderNotesHtml(order) {
     return order.notes
       ? `<pre class="order-notes">${escapeHtml(order.notes)}</pre>`
@@ -986,22 +1034,10 @@ function initAdminDashboard() {
   }
 
   function renderOrderDetail(order) {
-    const items = (order.items || []).map((item) => `
-      <div class="receipt-item">
-        <span>${escapeHtml(item.item_name)} x ${item.quantity}</span>
-        <strong>${money(item.line_total)}</strong>
-      </div>
-    `).join("");
     const statusActions = quickStatusButtons(order);
     orderDetailTitle.textContent = `${order.order_number} - ${order.table_label || "No table"}`;
     orderDetailBody.innerHTML = `
-      <div class="order-detail-grid">
-        <p><strong>Customer</strong><span>${escapeHtml(order.customer_name || "Guest")}</span></p>
-        <p><strong>Phone</strong><span>${escapeHtml(order.customer_phone || "Not shared")}</span></p>
-        <p><strong>Payment</strong><span>${escapeHtml(order.payment_method)} / ${escapeHtml(order.payment_status.replaceAll("_", " "))}</span></p>
-        <p><strong>Total</strong><span>${money(order.total_amount)}</span></p>
-      </div>
-      <div class="receipt-items">${items}</div>
+      ${receiptHtml(order, { showCustomer: true })}
       <section class="order-notes-section">
         <h3>Notes</h3>
         ${orderNotesHtml(order)}
@@ -1234,23 +1270,26 @@ function initAdminDashboard() {
     renderMetrics();
     renderTopItems();
     renderSalesChart();
+    renderExternalOrders();
   }
 
   async function load() {
     if (isLoading) return;
     isLoading = true;
     try {
-      const [orderPayload, tablePayload] = await Promise.all([
+      const [orderPayload, tablePayload, externalOrderPayload] = await Promise.all([
         apiFetch("/api/v1/admin/orders"),
         apiFetch("/api/v1/admin/tables"),
+        apiFetch("/api/v1/admin/external-orders"),
       ]);
-      const nextSignature = JSON.stringify({ orders: orderPayload, tables: tablePayload });
+      const nextSignature = JSON.stringify({ orders: orderPayload, tables: tablePayload, externalOrders: externalOrderPayload });
       if (nextSignature === dashboardDataSignature) {
         return;
       }
       dashboardDataSignature = nextSignature;
       orders = orderPayload;
       tables = tablePayload;
+      externalOrders = externalOrderPayload;
       render();
     } finally {
       isLoading = false;
@@ -1282,6 +1321,31 @@ function initAdminDashboard() {
     await updateOrderStatus(orderId, select.value);
   });
 
+  document.querySelector(".delivery-orders-panel")?.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-external-status]");
+    if (!button) return;
+    await updateExternalOrderStatus(button.dataset.externalOrder, button.dataset.externalStatus);
+  });
+
+  externalOrderForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(externalOrderForm);
+    const payload = {
+      platform: data.get("platform"),
+      platform_order_id: data.get("platform_order_id"),
+      customer_name: data.get("customer_name"),
+      total_amount: data.get("total_amount"),
+      items_text: data.get("items_text"),
+    };
+    await apiFetch("/api/v1/admin/external-orders", {
+      method: "POST",
+      body: payload,
+    });
+    externalOrderForm.reset();
+    dashboardDataSignature = "";
+    await load();
+  });
+
   orderDetailBody?.addEventListener("click", async (event) => {
     const quickButton = event.target.closest("[data-quick-status]");
     if (!quickButton) return;
@@ -1306,6 +1370,17 @@ function initAdminDashboard() {
       load();
     });
     socket.on("order_updated", load);
+    socket.on("external_order_created", (order) => {
+      playRepeatingKitchenTone(5000);
+      announceNewOrder("New delivery order");
+      showExternalOrderNotification(order);
+      dashboardDataSignature = "";
+      load();
+    });
+    socket.on("external_order_updated", () => {
+      dashboardDataSignature = "";
+      load();
+    });
   }
   setInterval(load, 3000);
   load().catch((error) => {
@@ -1344,6 +1419,28 @@ function kitchenOrderCard(order) {
   `;
 }
 
+function externalKitchenOrderCard(order) {
+  const items = (order.items || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  const actions = {
+    pending: [["preparing", "Accept"]],
+    preparing: [["ready", "Ready"]],
+    ready: [["completed", "Complete"]],
+  }[order.status] || [];
+  return `
+    <article class="kitchen-card external-kitchen-card">
+      <header>
+        <span>${escapeHtml(order.platform_label)}</span>
+        <strong>${escapeHtml(order.platform_order_id)}</strong>
+      </header>
+      <p>${escapeHtml(order.customer_name || "Delivery customer")} - ${money(order.total_amount)}</p>
+      <ul>${items}</ul>
+      <div class="order-actions">
+        ${actions.map(([status, label]) => `<button class="button primary" data-external-kitchen-status="${status}" data-external-order="${escapeHtml(order.id)}" type="button">${label}</button>`).join("")}
+      </div>
+    </article>
+  `;
+}
+
 function initKitchenDisplay() {
   const board = document.querySelector(".kitchen-board");
   if (!board) return;
@@ -1359,24 +1456,43 @@ function initKitchenDisplay() {
   };
   let signature = "";
 
-  function render(orders) {
+  function render(orders, externalOrders) {
     Object.entries(columns).forEach(([status, element]) => {
       const statusOrders = orders.filter((order) => order.status === status);
-      counts[status].textContent = statusOrders.length;
-      element.innerHTML = statusOrders.map(kitchenOrderCard).join("") || `<p class="helper-text">No ${status.replaceAll("_", " ")} orders.</p>`;
+      const statusExternalOrders = externalOrders.filter((order) => order.status === status);
+      counts[status].textContent = statusOrders.length + statusExternalOrders.length;
+      element.innerHTML = [
+        ...statusOrders.map(kitchenOrderCard),
+        ...statusExternalOrders.map(externalKitchenOrderCard),
+      ].join("") || `<p class="helper-text">No ${status.replaceAll("_", " ")} orders.</p>`;
     });
   }
 
   async function load() {
-    const orders = await apiFetch("/api/v1/admin/orders");
+    const [orders, externalOrders] = await Promise.all([
+      apiFetch("/api/v1/admin/orders"),
+      apiFetch("/api/v1/admin/external-orders"),
+    ]);
     const active = orders.filter((order) => ["pending", "preparing", "ready"].includes(order.status));
-    const nextSignature = JSON.stringify(active);
+    const activeExternal = externalOrders.filter((order) => ["pending", "preparing", "ready"].includes(order.status));
+    const nextSignature = JSON.stringify({ active, activeExternal });
     if (nextSignature === signature) return;
     signature = nextSignature;
-    render(active);
+    render(active, activeExternal);
   }
 
   board.addEventListener("click", async (event) => {
+    const externalButton = event.target.closest("[data-external-kitchen-status]");
+    if (externalButton) {
+      await apiFetch(`/api/v1/admin/external-orders/${encodeURIComponent(externalButton.dataset.externalOrder)}`, {
+        method: "PATCH",
+        body: { status: externalButton.dataset.externalKitchenStatus },
+      });
+      signature = "";
+      await load();
+      return;
+    }
+
     const button = event.target.closest("[data-kitchen-status]");
     if (!button) return;
     await apiFetch(`/api/v1/admin/orders/${button.dataset.orderId}/status`, {
@@ -1392,6 +1508,8 @@ function initKitchenDisplay() {
     socket.emit("admin_join");
     socket.on("order_created", load);
     socket.on("order_updated", load);
+    socket.on("external_order_created", load);
+    socket.on("external_order_updated", load);
   }
   setInterval(load, 5000);
   load().catch(() => {});

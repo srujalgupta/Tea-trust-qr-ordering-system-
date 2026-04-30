@@ -12,6 +12,7 @@
     </h1>
     <p id="tokenStatus" class="status-pill status-{{ order.status }}">{{ order.status.replace("_", " ").title() }}</p>
     <p id="estimatedWait" class="success-wait">Estimated wait: 12-18 minutes</p>
+    <p id="paymentNotice" class="payment-notice">Payment at store. Please pay directly at the counter when collecting your order.</p>
     <div class="success-actions">
       <a class="button primary" id="successBackToMenu" href="{{ url_for('customer.menu', table=order.table.id) if order.table else url_for('customer.menu') }}">Back to menu</a>
       <a class="button" id="whatsAppConfirmLink" href="#" target="_blank" rel="noopener">Share confirmation</a>

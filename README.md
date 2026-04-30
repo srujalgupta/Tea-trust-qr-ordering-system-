@@ -1,6 +1,6 @@
 # QR Cafe Ordering System
 
-Production-oriented QR cafe ordering system built with Flask, SQLAlchemy, Flask-Login, Flask-SocketIO, Razorpay integration, and PostgreSQL-ready configuration. SQLite is used only as a local fallback when `DATABASE_URL` is empty.
+Production-oriented QR cafe ordering system built with Flask, SQLAlchemy, Flask-Login, Flask-SocketIO, pay-at-store checkout, delivery-platform order tracking, and PostgreSQL-ready configuration. SQLite is used only as a local fallback when `DATABASE_URL` is empty.
 
 ## Features
 
@@ -16,9 +16,7 @@ Production-oriented QR cafe ordering system built with Flask, SQLAlchemy, Flask-
 - Kitchen display mode at `/admin/kitchen`
 - Analytics page with revenue, peak hours, top items, prep time, and CSV export
 - Daily token generation with PostgreSQL advisory locking and SQLite local fallback
-- Razorpay test-mode payment flow with HMAC signature verification
-- Mock payment fallback when Razorpay keys or package are unavailable
-- Cash payment flow
+- Pay-at-store checkout flow with cash status tracking
 - Menu item CRUD, image upload, availability toggles
 - Branded table QR poster previews with raw QR download, SVG poster download, and print controls
 - Order success screen with token, estimated wait, WhatsApp share link, and return-to-menu action
@@ -80,24 +78,11 @@ flask --app run.py db migrate -m "initial schema"
 flask --app run.py db upgrade
 ```
 
-## Razorpay Test Mode
+## Payment Mode
 
-Set:
-
-```env
-RAZORPAY_KEY_ID=rzp_test_xxx
-RAZORPAY_KEY_SECRET=xxx
-RAZORPAY_WEBHOOK_SECRET=xxx
-RAZORPAY_FORCE_MOCK=false
-```
-
-If keys or the `razorpay` package are missing, the app uses mock mode so local development still works.
-
-Webhook endpoint:
-
-```text
-POST /api/v1/payments/razorpay/webhook
-```
+Customer checkout is configured for direct store payment only. Orders are created
+as `cash_pending`, shown on the customer/admin receipts, and marked `paid` when
+the order is completed by admin.
 
 ## API Endpoints
 
@@ -106,10 +91,11 @@ POST /api/v1/payments/razorpay/webhook
 - `GET /api/v1/menu`
 - `POST /api/v1/orders`
 - `GET /api/v1/orders/<order_id>`
-- `POST /api/v1/payments/razorpay/verify`
-- `POST /api/v1/payments/razorpay/webhook`
 - `GET /api/v1/admin/orders`
 - `PATCH /api/v1/admin/orders/<order_id>/status`
+- `GET /api/v1/admin/external-orders`
+- `POST /api/v1/admin/external-orders`
+- `PATCH /api/v1/admin/external-orders/<order_id>`
 - `GET /api/v1/admin/analytics`
 - `GET /api/v1/admin/export/orders.csv`
 - `GET /api/v1/admin/export/menu.csv`
@@ -123,7 +109,7 @@ POST /api/v1/payments/razorpay/webhook
 - `POST /api/v1/admin/tables`
 - `PATCH /api/v1/admin/tables/<table_id>`
 
-Unsafe API requests require the `X-CSRFToken` header except the Razorpay webhook.
+Unsafe API requests require the `X-CSRFToken` header.
 
 ## Deployment
 
@@ -152,7 +138,6 @@ Use one worker for Flask-SocketIO unless you add a supported message queue such 
 - Set `DATABASE_URL` to a PostgreSQL database, then run `flask --app run.py init-db` and `flask --app run.py seed-data`.
 - Change `ADMIN_PASSWORD` from `admin12345`; the app refuses to start in production with the default password.
 - Confirm `CAFE_TABLE_COUNT`, then open `/admin/tables` to download or print the QR for each table.
-- Set Razorpay keys and webhook secret before enabling real online payments.
 - Set `SOCKETIO_ASYNC_MODE=eventlet` for Render/Railway-style SocketIO deployment.
 
 ## Image Guidelines

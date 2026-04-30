@@ -9,7 +9,7 @@
       <div>
         <p class="eyebrow">{% if table %}Ordering for {{ table.label }}{% else %}Your order{% endif %}</p>
         <h1>{% if checkout_mode %}Checkout{% else %}Your Cart{% endif %}</h1>
-        <p>{% if checkout_mode %}Review your items, add your details, and place the order.{% else %}Review your items before checkout.{% endif %}</p>
+        <p>{% if checkout_mode %}Review your receipt, add your details, and pay directly at the store.{% else %}Review your receipt before checkout.{% endif %}</p>
       </div>
       <a class="button" id="continueMenuLink" href="{{ url_for('customer.menu') }}">Back to menu</a>
     </div>
@@ -61,17 +61,13 @@
             Notes
             <textarea id="orderNotes"></textarea>
           </label>
-          <div class="segmented">
-            <label><input type="radio" name="paymentMethod" value="cash" checked> Cash</label>
-            <label><input type="radio" name="paymentMethod" value="razorpay"> Online</label>
+          <div class="pay-at-store-box">
+            <strong>Payment at store</strong>
+            <span>No online payment needed. Customer pays directly at the counter when the order is collected.</span>
           </div>
-          <button id="placeOrder" class="button primary full-width" type="button">Place order</button>
+          <button id="placeOrder" class="button primary full-width" type="button">Place order - pay at store</button>
         </section>
       {% endif %}
     </section>
   </section>
-{% endblock %}
-
-{% block scripts %}
-  <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
 {% endblock %}

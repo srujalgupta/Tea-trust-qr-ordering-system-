@@ -130,6 +130,32 @@
     </article>
   </section>
 
+  <section class="dashboard-panels">
+    <article class="dashboard-card delivery-orders-panel">
+      <header class="panel-header">
+        <div>
+          <h2>Zomato / Swiggy Orders</h2>
+          <p class="helper-text">Add delivery app orders here to see them on this screen.</p>
+        </div>
+        <span id="externalOrdersMetric" class="panel-link">0 active</span>
+      </header>
+
+      <form id="externalOrderForm" class="external-order-form">
+        <select name="platform" aria-label="Delivery platform" required>
+          <option value="zomato">Zomato</option>
+          <option value="swiggy">Swiggy</option>
+        </select>
+        <input name="platform_order_id" placeholder="App order ID">
+        <input name="customer_name" placeholder="Customer name">
+        <input name="total_amount" type="number" min="0" step="0.01" placeholder="Amount">
+        <textarea name="items_text" placeholder="Items, one per line" required></textarea>
+        <button class="button primary" type="submit">Add delivery order</button>
+      </form>
+
+      <div id="externalOrdersBoard" class="external-orders-board" aria-live="polite"></div>
+    </article>
+  </section>
+
   <dialog id="orderDetailDialog" class="modal-dialog">
     <form method="dialog" class="modal-shell">
       <header class="modal-header">

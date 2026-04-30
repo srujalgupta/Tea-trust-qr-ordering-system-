@@ -4,6 +4,7 @@ __pycache__/
 .env
 instance/*.db
 instance/*.log
+instance/*.json
 app/static/uploads/*
 !app/static/uploads/.gitkeep
 .pytest_cache/

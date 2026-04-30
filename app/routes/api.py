@@ -6,7 +6,13 @@ from io import StringIO
 from flask import Blueprint, Response, current_app, jsonify, request
 from flask_login import current_user
 
+from app.extensions import socketio
 from app.services.errors import ForbiddenError, ValidationError
+from app.services.external_order_service import (
+    create_external_order,
+    list_external_orders,
+    update_external_order,
+)
 from app.services.health_service import build_health_payload
 from app.services.menu_service import (
     create_category,
@@ -119,6 +125,28 @@ def admin_update_order_status(order_id):
         cancellation_reason=data.get("cancellation_reason"),
     )
     return jsonify(serialize_order(order))
+
+
+@api_bp.get("/admin/external-orders")
+def admin_external_orders():
+    _require_admin_api()
+    return jsonify(list_external_orders(current_app.instance_path))
+
+
+@api_bp.post("/admin/external-orders")
+def admin_create_external_order():
+    _require_admin_api()
+    order = create_external_order(current_app.instance_path, _json_body())
+    socketio.emit("external_order_created", order, room="admin_orders")
+    return jsonify(order), 201
+
+
+@api_bp.patch("/admin/external-orders/<order_id>")
+def admin_update_external_order(order_id):
+    _require_admin_api()
+    order = update_external_order(current_app.instance_path, order_id, _json_body())
+    socketio.emit("external_order_updated", order, room="admin_orders")
+    return jsonify(order)
 
 
 def _admin_orders_for_range(days):
