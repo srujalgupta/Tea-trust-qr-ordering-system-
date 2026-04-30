@@ -795,18 +795,29 @@ function initAdminDashboard() {
     const audio = ensureAlertAudio();
     if (!audio) return;
     const start = audio.currentTime + 0.02;
-    [660, 880].forEach((frequency, index) => {
+    [784, 988, 1175].forEach((frequency, index) => {
       const oscillator = audio.createOscillator();
       const gain = audio.createGain();
       oscillator.type = "sine";
       oscillator.frequency.value = frequency;
-      gain.gain.setValueAtTime(0.0001, start + index * 0.14);
-      gain.gain.exponentialRampToValueAtTime(0.22, start + index * 0.14 + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + index * 0.14 + 0.12);
+      gain.gain.setValueAtTime(0.0001, start + index * 0.16);
+      gain.gain.exponentialRampToValueAtTime(0.28, start + index * 0.16 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + index * 0.16 + 0.14);
       oscillator.connect(gain).connect(audio.destination);
-      oscillator.start(start + index * 0.14);
-      oscillator.stop(start + index * 0.14 + 0.14);
+      oscillator.start(start + index * 0.16);
+      oscillator.stop(start + index * 0.16 + 0.16);
     });
+  }
+
+  function announceNewOrder() {
+    if (!alertsEnabled || !("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) return;
+    window.speechSynthesis.cancel();
+    const message = new SpeechSynthesisUtterance("New order");
+    message.lang = "en-IN";
+    message.rate = 0.95;
+    message.pitch = 1.05;
+    message.volume = 1;
+    window.speechSynthesis.speak(message);
   }
 
   function showOrderNotification(order) {
@@ -1213,6 +1224,7 @@ function initAdminDashboard() {
     socket.emit("admin_join");
     socket.on("order_created", (order) => {
       playKitchenTone();
+      announceNewOrder();
       showOrderNotification(order);
       load();
     });
