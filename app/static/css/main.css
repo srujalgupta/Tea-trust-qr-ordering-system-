@@ -638,6 +638,60 @@ p {
   color: #fff;
 }
 
+.menu-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.hero-ghost-button {
+  border-color: rgba(255, 255, 255, 0.54);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+.hero-ghost-button:hover {
+  border-color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.customer-status-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.customer-status-strip div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 22px rgba(29, 35, 40, 0.06);
+  padding: 12px 14px;
+}
+
+.customer-status-strip span,
+.menu-search-control span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.customer-status-strip strong {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .menu-tools {
   position: sticky;
   top: 74px;
@@ -650,6 +704,16 @@ p {
   padding: 10px 0;
   background: rgba(246, 248, 247, 0.94);
   backdrop-filter: blur(10px);
+}
+
+.menu-search-control {
+  gap: 0;
+  min-width: 0;
+}
+
+.menu-search-control input {
+  min-height: 48px;
+  padding-left: 14px;
 }
 
 .customer-actions-panel,
@@ -665,7 +729,7 @@ p {
 
 .category-tabs {
   position: sticky;
-  top: 144px;
+  top: 166px;
   z-index: 18;
   display: flex;
   gap: 8px;
@@ -808,7 +872,7 @@ p {
   border-radius: 8px;
   background: #fff;
   overflow: hidden;
-  scroll-margin-top: 214px;
+  scroll-margin-top: 236px;
   animation: panel-rise 0.42s var(--ease-out) both;
   transition:
     border-color 0.18s ease,
@@ -891,6 +955,11 @@ p {
     transform 0.22s var(--ease-out);
 }
 
+.item-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
 .item-card:hover,
 .order-card:hover,
 .admin-row:hover {
@@ -926,11 +995,24 @@ p {
   padding: 14px;
 }
 
+.item-body {
+  display: grid;
+  gap: 10px;
+}
+
 .item-title {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+}
+
+.item-title h3 {
+  margin-bottom: 0;
+}
+
+.item-body p {
+  margin-bottom: 0;
 }
 
 .price {
@@ -939,11 +1021,90 @@ p {
   white-space: nowrap;
 }
 
+.item-meta-row,
+.item-card-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.veg-indicator,
+.bestseller-chip,
+.in-cart-pill {
+  min-height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.veg-indicator {
+  border: 1px solid #bfe2d4;
+  color: var(--accent-strong);
+  background: #f0faf5;
+}
+
+.veg-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.veg-indicator.is-non-veg {
+  border-color: #f2c0b8;
+  color: #9b2c20;
+  background: #fff4f1;
+}
+
+.veg-indicator.is-non-veg span {
+  background: #c2412d;
+}
+
+.bestseller-chip {
+  background: #fff5df;
+  color: #8a4b00;
+}
+
+.item-card-actions {
+  margin-top: auto;
+}
+
+.item-card-actions.has-quantity {
+  display: grid;
+  grid-template-columns: minmax(128px, 1fr) auto;
+}
+
+.menu-item-stepper {
+  width: 100%;
+  grid-template-columns: 40px minmax(44px, 1fr) 40px;
+}
+
+.menu-item-stepper span {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.in-cart-pill {
+  justify-content: center;
+  background: #edf6f2;
+  color: var(--accent-strong);
+  white-space: nowrap;
+}
+
 .tag-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin: 10px 0;
+}
+
+.item-body .tag-row {
+  margin: 0;
 }
 
 .tag,
@@ -2492,6 +2653,10 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .customer-status-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .cart-panel {
     position: static;
   }
@@ -2586,6 +2751,10 @@ p {
     display: none;
   }
 
+  .menu-hero-actions .button {
+    flex: 1 1 140px;
+  }
+
   .mobile-checkout-bar {
     position: fixed;
     left: 12px;
@@ -2607,7 +2776,7 @@ p {
   }
 
   .category-tabs {
-    top: 154px;
+    top: 184px;
     margin-left: -12px;
     margin-right: -12px;
     padding-left: 12px;

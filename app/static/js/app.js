@@ -202,6 +202,8 @@ function initCustomerMenu() {
     document.getElementById("checkoutAmount"),
     document.getElementById("mobileCheckoutAmount"),
   ].filter(Boolean);
+  const menuItemTotalEl = document.getElementById("menuItemTotal");
+  const bestsellerTotalEl = document.getElementById("bestsellerTotal");
   const cartKey = "qrCafeCart";
   const tableKey = "qrCafeTableId";
 
@@ -257,7 +259,7 @@ function initCustomerMenu() {
       if (!count) return "";
       const categoryId = String(category.id);
       return `
-        <button class="category-tab ${openCategories.has(categoryId) ? "active" : ""}" data-category-tab="${category.id}" type="button">
+        <button class="category-tab ${openCategories.has(categoryId) ? "active" : ""}" data-category-tab="${category.id}" type="button" aria-pressed="${openCategories.has(categoryId)}">
           <span>${escapeHtml(category.name)}</span>
           <small>${count}</small>
         </button>
@@ -265,9 +267,35 @@ function initCustomerMenu() {
     }).join("");
   }
 
+  function renderMenuStats() {
+    const bestsellerCount = items.filter((item) => item.is_bestseller).length;
+    if (menuItemTotalEl) {
+      menuItemTotalEl.textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
+    }
+    if (bestsellerTotalEl) {
+      bestsellerTotalEl.textContent = `${bestsellerCount} pick${bestsellerCount === 1 ? "" : "s"}`;
+    }
+  }
+
   function renderMenu() {
     function itemCard(item) {
-      const tags = (item.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("");
+      const quantity = Number(cart[item.id] || 0);
+      const tags = (item.tags || [])
+        .filter((tag) => !["veg", "bestseller"].includes(String(tag).toLowerCase()))
+        .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
+        .join("");
+      const itemAction = quantity
+        ? `<div class="item-card-actions has-quantity">
+            <div class="menu-item-stepper stepper" aria-label="Quantity for ${escapeHtml(item.name)}">
+              <button type="button" data-menu-step="${item.id}" data-delta="-1">-</button>
+              <span>${quantity}</span>
+              <button type="button" data-add="${item.id}">+</button>
+            </div>
+            <span class="in-cart-pill">In cart</span>
+          </div>`
+        : `<div class="item-card-actions">
+            <button class="button primary full-width" data-add="${item.id}" type="button">Add to cart</button>
+          </div>`;
       return `
         <article class="item-card">
           ${imageTag(item)}
@@ -276,9 +304,15 @@ function initCustomerMenu() {
               <h3>${escapeHtml(item.name)}</h3>
               <span class="price">${money(item.price)}</span>
             </div>
+            <div class="item-meta-row">
+              <span class="veg-indicator ${item.is_veg ? "is-veg" : "is-non-veg"}">
+                <span aria-hidden="true"></span>${item.is_veg ? "Veg" : "Non-veg"}
+              </span>
+              ${item.is_bestseller ? `<span class="bestseller-chip">Popular</span>` : ""}
+            </div>
             <p>${escapeHtml(item.description)}</p>
-            <div class="tag-row">${tags}</div>
-            <button class="button full-width" data-add="${item.id}" type="button">Add to cart</button>
+            ${tags ? `<div class="tag-row">${tags}</div>` : ""}
+            ${itemAction}
           </div>
         </article>
       `;
@@ -329,6 +363,7 @@ function initCustomerMenu() {
   }
 
   function renderAll() {
+    renderMenuStats();
     renderCategoryTabs();
     renderMenu();
     renderCartSummary();
@@ -338,6 +373,14 @@ function initCustomerMenu() {
     const payload = await apiFetch("/api/v1/menu");
     categories = payload.categories;
     items = payload.items;
+    if (!openCategories.size) {
+      const firstCategory = categories.find((category) => (
+        items.some((item) => String(item.category_id) === String(category.id))
+      ));
+      if (firstCategory) {
+        openCategories.add(String(firstCategory.id));
+      }
+    }
     renderAll();
   }
 
@@ -370,12 +413,24 @@ function initCustomerMenu() {
       return;
     }
 
+    const stepButton = event.target.closest("[data-menu-step]");
+    if (stepButton) {
+      const id = stepButton.dataset.menuStep;
+      cart[id] = (cart[id] || 0) + Number(stepButton.dataset.delta);
+      if (cart[id] <= 0) {
+        delete cart[id];
+      }
+      saveCart();
+      renderAll();
+      return;
+    }
+
     const button = event.target.closest("[data-add]");
     if (!button) return;
     const id = button.dataset.add;
     cart[id] = (cart[id] || 0) + 1;
     saveCart();
-    renderCartSummary();
+    renderAll();
   });
 
   cartShortcutButton?.addEventListener("click", () => goToCustomerPage("/cart"));
@@ -768,6 +823,7 @@ function initAdminDashboard() {
   let seenOrderIds = new Set(JSON.parse(localStorage.getItem(seenOrdersKey) || "[]"));
   let alertsEnabled = localStorage.getItem("qrCafeAdminAlerts") === "on";
   let alertAudioContext = null;
+  let alertToneTimer = null;
 
   function renderAlertState() {
     if (!alertsButton || !alertsStatus) return;
@@ -807,6 +863,27 @@ function initAdminDashboard() {
       oscillator.start(start + index * 0.16);
       oscillator.stop(start + index * 0.16 + 0.16);
     });
+  }
+
+  function stopKitchenToneLoop() {
+    if (!alertToneTimer) return;
+    window.clearInterval(alertToneTimer);
+    alertToneTimer = null;
+  }
+
+  function playRepeatingKitchenTone(durationMs = 5000) {
+    if (!alertsEnabled) return;
+    stopKitchenToneLoop();
+    const endAt = Date.now() + durationMs;
+    playKitchenTone();
+    alertToneTimer = window.setInterval(() => {
+      if (Date.now() >= endAt) {
+        stopKitchenToneLoop();
+        return;
+      }
+      playKitchenTone();
+    }, 850);
+    window.setTimeout(stopKitchenToneLoop, durationMs + 250);
   }
 
   function announceNewOrder() {
@@ -1223,7 +1300,7 @@ function initAdminDashboard() {
   if (socket) {
     socket.emit("admin_join");
     socket.on("order_created", (order) => {
-      playKitchenTone();
+      playRepeatingKitchenTone(5000);
       announceNewOrder();
       showOrderNotification(order);
       load();

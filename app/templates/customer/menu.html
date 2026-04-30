@@ -23,11 +23,37 @@
       <p class="eyebrow">{% if table %}Ordering for {{ table.label }}{% else %}{{ cafe.subtitle }}{% endif %}</p>
       <h1>{{ cafe.name }}</h1>
       <p>{{ cafe.tagline }}. Choose your favourites and track your token live. Call {{ cafe.phone }}.</p>
+      <div class="menu-hero-actions">
+        <a class="button primary" href="#menuList">Browse menu</a>
+        <a class="button hero-ghost-button" href="{{ url_for('customer.cart', table=table.id) if table else url_for('customer.cart') }}">View cart</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="customer-status-strip" aria-label="Ordering summary">
+    <div>
+      <span>Table</span>
+      <strong>{% if table %}{{ table.label }}{% else %}Takeaway{% endif %}</strong>
+    </div>
+    <div>
+      <span>Menu</span>
+      <strong id="menuItemTotal">Loading</strong>
+    </div>
+    <div>
+      <span>Popular</span>
+      <strong id="bestsellerTotal">Loading</strong>
+    </div>
+    <div>
+      <span>Wait</span>
+      <strong>12-18 min</strong>
     </div>
   </section>
 
   <section class="menu-tools">
-    <input id="menuSearch" type="search" placeholder="Search menu" autocomplete="off">
+    <label class="menu-search-control" for="menuSearch">
+      <span>Search</span>
+      <input id="menuSearch" type="search" placeholder="Chai, sandwich, fries..." autocomplete="off">
+    </label>
     <div class="customer-actions-panel" aria-label="Cart and checkout">
       <button id="cartShortcut" class="customer-action-button cart-action" type="button" aria-label="View cart">
         <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
