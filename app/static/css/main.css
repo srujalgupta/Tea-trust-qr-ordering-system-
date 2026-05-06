@@ -841,6 +841,40 @@ p {
   color: #fff;
 }
 
+.floating-menu-button {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 28;
+  min-height: 48px;
+  border: 1px solid rgba(23, 87, 66, 0.24);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(31, 122, 92, 0.28);
+  cursor: pointer;
+  font-weight: 900;
+  padding: 0 16px;
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.floating-menu-button:hover {
+  background: var(--primary-700);
+  box-shadow: 0 20px 42px rgba(31, 122, 92, 0.34);
+  transform: translateY(-2px);
+}
+
+.floating-menu-button .action-icon {
+  width: 21px;
+  height: 21px;
+}
+
 .mobile-checkout-bar {
   display: none;
 }
@@ -3094,6 +3128,11 @@ p {
     padding: 10px;
     backdrop-filter: blur(12px);
     animation: panel-rise 0.38s var(--ease-out) both;
+  }
+
+  .floating-menu-button {
+    right: 16px;
+    bottom: 96px;
   }
 
   .mobile-checkout-bar .customer-action-button {

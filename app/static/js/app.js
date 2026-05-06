@@ -199,7 +199,7 @@ document.addEventListener("error", (event) => {
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
   const animated = event.target.closest(
-    ".button, .icon-button, .chip, .customer-action-button, .admin-nav-link, .delivery-app-button, .menu-section-toggle, .stepper button",
+    ".button, .icon-button, .chip, .customer-action-button, .floating-menu-button, .admin-nav-link, .delivery-app-button, .menu-section-toggle, .stepper button",
   );
   if (animated) animatePress(animated);
 });
@@ -246,6 +246,7 @@ function initCustomerMenu() {
   const checkoutShortcutButton = document.getElementById("checkoutShortcut");
   const mobileCartShortcutButton = document.getElementById("mobileCartShortcut");
   const mobileCheckoutShortcutButton = document.getElementById("mobileCheckoutShortcut");
+  const floatingMenuButton = document.getElementById("floatingMenuButton");
   const cartCountEls = [
     document.getElementById("cartItemCount"),
     document.getElementById("mobileCartItemCount"),
@@ -489,6 +490,14 @@ function initCustomerMenu() {
   mobileCartShortcutButton?.addEventListener("click", () => goToCustomerPage("/cart"));
   checkoutShortcutButton?.addEventListener("click", () => goToCustomerPage("/checkout"));
   mobileCheckoutShortcutButton?.addEventListener("click", () => goToCustomerPage("/checkout"));
+  floatingMenuButton?.addEventListener("click", () => {
+    const target = searchInput.closest(".menu-tools") || categoryTabs || menuList;
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      searchInput.focus({ preventScroll: true });
+      searchInput.select();
+    }, 320);
+  });
   searchInput.addEventListener("input", renderAll);
   loadMenu().catch((error) => {
     menuList.innerHTML = `<p class="helper-text">${escapeHtml(error.message)}</p>`;
