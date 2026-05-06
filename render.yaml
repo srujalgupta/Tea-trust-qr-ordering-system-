@@ -1,11 +1,13 @@
 services:
   - type: web
     name: qr-cafe
-    env: python
+    runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: flask --app run.py init-db && flask --app run.py seed-data && gunicorn --bind 0.0.0.0:$PORT --worker-class eventlet -w 1 wsgi:app
+    startCommand: unset GUNICORN_CMD_ARGS; flask --app run.py init-db && flask --app run.py seed-data && gunicorn --bind 0.0.0.0:${PORT:-10000} --worker-class eventlet -w 1 wsgi:app
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
       - key: APP_ENV
         value: production
       - key: FLASK_CONFIG
