@@ -2,6 +2,7 @@ services:
   - type: web
     name: qr-cafe
     env: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: flask --app run.py init-db && flask --app run.py seed-data && gunicorn --bind 0.0.0.0:$PORT --worker-class eventlet -w 1 wsgi:app
     envVars:
@@ -26,5 +27,6 @@ services:
 
 databases:
   - name: qr-cafe-db
+    plan: free
     databaseName: qrcafe
     user: qrcafe
