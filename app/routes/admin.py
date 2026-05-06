@@ -1,3 +1,5 @@
+from urllib.parse import urlsplit
+
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_user, logout_user
 
@@ -17,6 +19,15 @@ def _default_admin_endpoint(user):
     if user.can("menu:manage"):
         return "admin.menu_manager"
     return "admin.settings"
+
+
+def _safe_next_url(target):
+    if not target:
+        return None
+    parts = urlsplit(target)
+    if parts.scheme or parts.netloc or not target.startswith("/"):
+        return None
+    return target
 
 
 @admin_bp.get("/")
@@ -42,7 +53,10 @@ def login():
         else:
             login_user(user)
             flash("Logged in successfully.", "success")
-            return redirect(request.args.get("next") or url_for(_default_admin_endpoint(user)))
+            return redirect(
+                _safe_next_url(request.args.get("next"))
+                or url_for(_default_admin_endpoint(user))
+            )
 
     return render_template("admin/login.html")
 
@@ -110,7 +124,7 @@ def settings():
 @admin_bp.post("/settings/password")
 @admin_required
 def change_password():
-    current_password = request.form.get("current_password")
+    current_password = request.form.get("current_password") or ""
     new_password = request.form.get("new_password") or ""
     confirm_password = request.form.get("confirm_password") or ""
 

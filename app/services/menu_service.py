@@ -33,6 +33,20 @@ def _parse_price(value):
     return price
 
 
+def _parse_int(value, field, default=None, minimum=None):
+    if value in (None, ""):
+        if default is not None:
+            return default
+        raise ValidationError(f"{field} is required.")
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        raise ValidationError(f"{field} must be a whole number.") from None
+    if minimum is not None and number < minimum:
+        raise ValidationError(f"{field} must be at least {minimum}.")
+    return number
+
+
 def list_categories(include_inactive=False):
     query = Category.query
     if not include_inactive:
@@ -86,7 +100,7 @@ def create_category(data):
     category = Category(
         name=_clean_text(data.get("name"), "name", 120, required=True),
         description=_clean_text(data.get("description"), "description", 255),
-        display_order=int(data.get("display_order") or 0),
+        display_order=_parse_int(data.get("display_order"), "display_order", default=0),
         is_active=_parse_bool(data.get("is_active"), True),
     )
     db.session.add(category)
@@ -101,7 +115,11 @@ def update_category(category_id, data):
     if "description" in data:
         category.description = _clean_text(data.get("description"), "description", 255)
     if "display_order" in data:
-        category.display_order = int(data.get("display_order") or 0)
+        category.display_order = _parse_int(
+            data.get("display_order"),
+            "display_order",
+            default=0,
+        )
     if "is_active" in data:
         category.is_active = _parse_bool(data.get("is_active"), category.is_active)
     db.session.commit()
@@ -109,7 +127,7 @@ def update_category(category_id, data):
 
 
 def create_menu_item(data):
-    category = get_category(int(data.get("category_id") or 0))
+    category = get_category(_parse_int(data.get("category_id"), "category_id", minimum=1))
     item = MenuItem(
         category=category,
         name=_clean_text(data.get("name"), "name", 160, required=True),
@@ -128,7 +146,9 @@ def create_menu_item(data):
 def update_menu_item(item_id, data):
     item = get_menu_item(item_id)
     if "category_id" in data:
-        item.category = get_category(int(data.get("category_id") or 0))
+        item.category = get_category(
+            _parse_int(data.get("category_id"), "category_id", minimum=1)
+        )
     if "name" in data:
         item.name = _clean_text(data.get("name"), "name", 160, required=True)
     if "description" in data:

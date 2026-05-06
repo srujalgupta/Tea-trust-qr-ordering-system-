@@ -1,6 +1,6 @@
 from app.extensions import db
 from .base import TimestampMixin
-from .constants import ORDER_STATUSES, PAYMENT_METHODS, PAYMENT_STATUSES
+from .constants import ORDER_STATUS_SQL, PAYMENT_METHOD_SQL, PAYMENT_STATUS_SQL
 
 
 class Order(TimestampMixin, db.Model):
@@ -22,7 +22,7 @@ class Order(TimestampMixin, db.Model):
     total_amount = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     currency = db.Column(db.String(3), nullable=False, default="INR")
     payment_method = db.Column(db.String(20), nullable=False, default="cash")
-    payment_status = db.Column(db.String(30), nullable=False, default="pending", index=True)
+    payment_status = db.Column(db.String(30), nullable=False, default="cash_pending", index=True)
     status = db.Column(db.String(30), nullable=False, default="pending", index=True)
 
     table = db.relationship("CafeTable", back_populates="orders")
@@ -47,15 +47,15 @@ class Order(TimestampMixin, db.Model):
 
     __table_args__ = (
         db.CheckConstraint(
-            f"status IN {ORDER_STATUSES}",
+            f"status IN {ORDER_STATUS_SQL}",
             name="ck_orders_status",
         ),
         db.CheckConstraint(
-            f"payment_status IN {PAYMENT_STATUSES}",
+            f"payment_status IN {PAYMENT_STATUS_SQL}",
             name="ck_orders_payment_status",
         ),
         db.CheckConstraint(
-            f"payment_method IN {PAYMENT_METHODS}",
+            f"payment_method IN {PAYMENT_METHOD_SQL}",
             name="ck_orders_payment_method",
         ),
         db.CheckConstraint("total_amount >= 0", name="ck_orders_total_non_negative"),

@@ -67,8 +67,6 @@ def serialize_payment(payment):
     return {
         "id": payment.id,
         "provider": payment.provider,
-        "provider_order_id": payment.provider_order_id,
-        "provider_payment_id": payment.provider_payment_id,
         "amount": money_to_float(payment.amount),
         "currency": payment.currency,
         "status": payment.status,

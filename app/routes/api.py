@@ -19,15 +19,7 @@ from app.services.menu_service import (
     update_category,
     update_menu_item,
 )
-from app.services.order_service import (
-    confirm_payment,
-    confirm_payment_from_webhook,
-    create_order,
-    get_order,
-    list_orders,
-    update_order_status,
-)
-from app.services.payment_service import apply_webhook_event
+from app.services.order_service import create_order, get_order, list_orders, update_order_status
 from app.services.serializers import (
     serialize_category,
     serialize_menu_item,
@@ -87,24 +79,6 @@ def get_customer_order(order_id):
     return jsonify(serialize_order(get_order(order_id)))
 
 
-@api_bp.post("/payments/razorpay/verify")
-def verify_razorpay_payment():
-    order = confirm_payment(_json_body(), current_app.config)
-    return jsonify(serialize_order(order))
-
-
-@api_bp.post("/payments/razorpay/webhook")
-def razorpay_webhook():
-    raw_body = request.get_data()
-    signature = request.headers.get("X-Razorpay-Signature", "")
-    event_id = request.headers.get("X-Razorpay-Event-Id", "")
-    result = apply_webhook_event(raw_body, signature, event_id, current_app.config)
-    order = confirm_payment_from_webhook(result, current_app.config)
-    if order:
-        return jsonify({"status": "ok", "order": serialize_order(order)})
-    return jsonify({"status": "ok", "result": result})
-
-
 @api_bp.get("/admin/orders")
 def admin_orders():
     require_admin_api("orders:view")
@@ -134,7 +108,7 @@ def _admin_orders_for_range(days):
 
 
 def _active_revenue_order(order):
-    return order.status != "cancelled" and order.payment_status not in {"created", "failed"}
+    return order.status != "cancelled" and order.payment_status in {"cash_pending", "paid"}
 
 
 def _aware_datetime(value):

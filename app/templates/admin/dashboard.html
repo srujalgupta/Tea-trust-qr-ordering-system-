@@ -40,6 +40,56 @@
     </article>
   </section>
 
+  <section class="dashboard-panels counter-order-section">
+    <article class="dashboard-card counter-order-panel">
+      <header class="panel-header">
+        <div>
+          <h2>Counter Order</h2>
+          <p class="helper-text">Create an order for a customer at the counter and choose the table.</p>
+        </div>
+      </header>
+
+      <form id="counterOrderForm" class="counter-order-form">
+        <div class="counter-order-grid">
+          <label>
+            Table
+            <select id="counterTableSelect" required>
+              <option value="">Select table</option>
+            </select>
+          </label>
+          <label>
+            Customer
+            <input id="counterCustomerName" autocomplete="name" placeholder="Guest">
+          </label>
+          <label>
+            Phone
+            <input id="counterCustomerPhone" autocomplete="tel" inputmode="tel" placeholder="Optional">
+          </label>
+        </div>
+
+        <div class="counter-item-picker">
+          <input id="counterItemSearch" type="search" placeholder="Type product name" autocomplete="off" aria-label="Search menu items">
+          <select id="counterItemSelect" aria-label="Menu item">
+            <option value="">Loading menu...</option>
+          </select>
+          <input id="counterItemQty" type="number" min="1" value="1" aria-label="Quantity">
+          <button id="counterAddItem" class="button" type="button">Add item</button>
+        </div>
+
+        <div id="counterOrderItems" class="counter-order-items"></div>
+        <label>
+          Notes
+          <textarea id="counterOrderNotes" placeholder="Special instructions"></textarea>
+        </label>
+        <div class="counter-order-footer">
+          <strong id="counterOrderTotal">INR 0.00</strong>
+          <button class="button primary" type="submit">Create order</button>
+        </div>
+        <p id="counterOrderMessage" class="helper-text" role="status"></p>
+      </form>
+    </article>
+  </section>
+
   <section class="dashboard-panels">
     <article class="dashboard-card sales-panel">
       <header class="panel-header">
@@ -72,7 +122,6 @@
           <button id="enableAlertsButton" class="button mini-button" type="button">Enable sound</button>
           <select id="orderStatusFilter" class="compact-input" aria-label="Filter orders by status">
             <option value="">All statuses</option>
-            <option value="payment_pending">Payment pending</option>
             <option value="pending">Pending</option>
             <option value="preparing">Preparing</option>
             <option value="ready">Ready</option>

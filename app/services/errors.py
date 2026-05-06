@@ -21,11 +21,6 @@ class NotFoundError(AppError):
     error_code = "not_found"
 
 
-class PaymentError(AppError):
-    status_code = 400
-    error_code = "payment_error"
-
-
 class ForbiddenError(AppError):
     status_code = 403
     error_code = "forbidden"

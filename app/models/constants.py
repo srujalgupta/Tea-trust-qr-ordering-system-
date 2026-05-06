@@ -1,5 +1,4 @@
 ORDER_STATUSES = (
-    "payment_pending",
     "pending",
     "preparing",
     "ready",
@@ -10,18 +9,24 @@ ORDER_STATUSES = (
 TOKEN_STATUSES = ("pending", "preparing", "ready", "completed")
 
 PAYMENT_STATUSES = (
-    "not_required",
-    "created",
-    "pending",
-    "paid",
-    "failed",
     "cash_pending",
+    "paid",
     "refunded",
 )
 
-PAYMENT_METHODS = ("cash", "razorpay")
+PAYMENT_METHODS = ("cash",)
 
-PAYMENT_PROVIDERS = ("cash", "razorpay", "mock")
+PAYMENT_PROVIDERS = ("cash",)
+
+
+def sql_values(values):
+    return "(" + ", ".join(f"'{value}'" for value in values) + ")"
+
+
+ORDER_STATUS_SQL = sql_values(ORDER_STATUSES)
+PAYMENT_STATUS_SQL = sql_values(PAYMENT_STATUSES)
+PAYMENT_METHOD_SQL = sql_values(PAYMENT_METHODS)
+PAYMENT_PROVIDER_SQL = sql_values(PAYMENT_PROVIDERS)
 
 STAFF_ROLES = ("owner", "manager", "counter", "kitchen", "menu")
 

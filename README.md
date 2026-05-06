@@ -84,9 +84,9 @@ flask --app run.py db upgrade
 
 ## Payment Mode
 
-Customer checkout is configured for direct store payment only. Orders are created
-as `cash_pending`, shown on the customer/admin receipts, and marked `paid` when
-the order is completed by admin.
+Customer checkout is configured for pay-at-counter only. Orders are created as
+`cash_pending`, shown on the customer/admin bills, and marked `paid` when the
+order is completed by admin.
 
 ## API Endpoints
 

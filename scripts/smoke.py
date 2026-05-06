@@ -35,11 +35,25 @@ def main():
 
     checkout_page = client.get("/checkout")
     assert checkout_page.status_code == 200
-    assert "checkout.razorpay.com" not in checkout_page.get_data(as_text=True)
 
     menu = client.get("/api/v1/menu")
     assert menu.status_code == 200
     first_item = menu.json["items"][0]
+
+    excessive_order = client.post(
+        "/api/v1/orders",
+        json={
+            "payment_method": "cash",
+            "customer_name": "Smoke Test",
+            "items": [
+                {"menu_item_id": first_item["id"], "quantity": 20},
+                {"menu_item_id": first_item["id"], "quantity": 20},
+            ],
+        },
+        headers={"X-CSRFToken": token},
+    )
+    assert excessive_order.status_code == 400
+    assert "Quantity per item cannot exceed 25" in excessive_order.get_data(as_text=True)
 
     order = client.post(
         "/api/v1/orders",
@@ -56,24 +70,24 @@ def main():
     assert order.json["payment_method"] == "cash"
     assert order.json["payment_status"] == "cash_pending"
 
-    online_order = client.post(
+    non_counter_order = client.post(
         "/api/v1/orders",
         json={
-            "payment_method": "razorpay",
+            "payment_method": "online",
             "customer_name": "Smoke Test",
             "items": [{"menu_item_id": first_item["id"], "quantity": 1}],
         },
         headers={"X-CSRFToken": token},
     )
-    assert online_order.status_code == 400
-    assert "Online payment is disabled" in online_order.get_data(as_text=True)
+    assert non_counter_order.status_code == 400
+    assert "Only pay-at-counter orders are supported" in non_counter_order.get_data(as_text=True)
 
     status = client.get(f"/api/v1/orders/{order_id}")
     assert status.status_code == 200
     assert status.json["status"] == "pending"
 
     login = client.post(
-        "/admin/login",
+        "/admin/login?next=https://example.com/phishing",
         data={
             "username": "admin",
             "password": "admin12345",
@@ -81,6 +95,21 @@ def main():
         },
     )
     assert login.status_code in {200, 302}
+    assert "example.com" not in (login.headers.get("Location") or "")
+
+    bad_category = client.post(
+        "/api/v1/admin/categories",
+        json={"name": "Broken", "display_order": "soon"},
+        headers={"X-CSRFToken": token},
+    )
+    assert bad_category.status_code == 400
+
+    bad_item = client.post(
+        "/api/v1/admin/menu-items",
+        json={"name": "Broken", "price": "10", "category_id": "later"},
+        headers={"X-CSRFToken": token},
+    )
+    assert bad_item.status_code == 400
 
     completed = client.patch(
         f"/api/v1/admin/orders/{order_id}/status",

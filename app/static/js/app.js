@@ -825,7 +825,6 @@ function estimatedWaitLabel(order) {
   if (order.status === "completed") return "Completed";
   if (order.status === "cancelled") return "Order cancelled";
   if (order.status === "preparing") return "Estimated wait: 8-12 minutes";
-  if (order.status === "payment_pending") return "Payment confirmation pending";
   return "Estimated wait: 12-18 minutes";
 }
 
@@ -935,10 +934,24 @@ function initAdminDashboard() {
   const orderDetailTitle = document.getElementById("orderDetailTitle");
   const orderDetailBody = document.getElementById("orderDetailBody");
   const printOrderBillButton = document.getElementById("printOrderBillButton");
+  const counterOrderForm = document.getElementById("counterOrderForm");
+  const counterTableSelect = document.getElementById("counterTableSelect");
+  const counterCustomerName = document.getElementById("counterCustomerName");
+  const counterCustomerPhone = document.getElementById("counterCustomerPhone");
+  const counterItemSearch = document.getElementById("counterItemSearch");
+  const counterItemSelect = document.getElementById("counterItemSelect");
+  const counterItemQty = document.getElementById("counterItemQty");
+  const counterAddItem = document.getElementById("counterAddItem");
+  const counterOrderItems = document.getElementById("counterOrderItems");
+  const counterOrderTotal = document.getElementById("counterOrderTotal");
+  const counterOrderNotes = document.getElementById("counterOrderNotes");
+  const counterOrderMessage = document.getElementById("counterOrderMessage");
   const statusValues = ["pending", "preparing", "ready", "completed", "cancelled"];
   const seenOrdersKey = "qrCafeSeenOrders";
   let orders = [];
   let tables = [];
+  let menuItems = [];
+  let counterItems = [];
   let isLoading = false;
   let dashboardDataSignature = "";
   let seenOrderIds = new Set(JSON.parse(localStorage.getItem(seenOrdersKey) || "[]"));
@@ -1119,16 +1132,132 @@ function initAdminDashboard() {
   }
 
   function statusSelectHtml(order) {
-    const values = order.status === "payment_pending"
-      ? ["payment_pending", ...statusValues]
-      : statusValues;
     return `
-      <select class="status-select status-${order.status}" data-status-for="${order.id}" aria-label="Order status" ${order.status === "payment_pending" ? "disabled" : ""}>
-        ${values.map((status) => (
+      <select class="status-select status-${order.status}" data-status-for="${order.id}" aria-label="Order status">
+        ${statusValues.map((status) => (
           `<option value="${status}" ${status === order.status ? "selected" : ""}>${statusLabel(status)}</option>`
         )).join("")}
       </select>
     `;
+  }
+
+  function counterItemTotal() {
+    return counterItems.reduce((total, item) => total + Number(item.price || 0) * Number(item.quantity || 0), 0);
+  }
+
+  function counterSearchMatches(item, query) {
+    if (!query) return true;
+    const haystack = [
+      item.name,
+      item.category_name,
+      item.description,
+      ...(item.tags || []),
+      String(item.price || ""),
+    ].join(" ").toLowerCase();
+    return query.split(/\s+/).every((word) => haystack.includes(word));
+  }
+
+  function filteredCounterMenuItems() {
+    const query = (counterItemSearch?.value || "").trim().toLowerCase();
+    return menuItems.filter((item) => counterSearchMatches(item, query)).slice(0, 60);
+  }
+
+  function renderCounterOrder() {
+    if (!counterOrderForm) return;
+    const selectedTable = counterTableSelect?.value || "";
+    const selectedItem = counterItemSelect?.value || "";
+    const matchingItems = filteredCounterMenuItems();
+    if (counterTableSelect) {
+      counterTableSelect.innerHTML = `
+        <option value="">Select table</option>
+        ${tables.map((table) => `<option value="${table.id}">${escapeHtml(table.label)}</option>`).join("")}
+      `;
+      counterTableSelect.value = selectedTable;
+    }
+    if (counterItemSelect) {
+      counterItemSelect.innerHTML = `
+        <option value="">${matchingItems.length ? "Select menu item" : "No matching product"}</option>
+        ${matchingItems.map((item) => `<option value="${item.id}">${escapeHtml(item.name)} - ${money(item.price)}</option>`).join("")}
+      `;
+      counterItemSelect.value = matchingItems.some((item) => String(item.id) === String(selectedItem))
+        ? selectedItem
+        : (matchingItems[0]?.id || "");
+    }
+    if (counterOrderItems) {
+      counterOrderItems.innerHTML = counterItems.map((item) => `
+        <div class="counter-order-line">
+          <span>${escapeHtml(item.name)} x ${item.quantity}</span>
+          <strong>${money(Number(item.price) * Number(item.quantity))}</strong>
+          <button class="icon-button" data-remove-counter-item="${item.id}" type="button" aria-label="Remove ${escapeHtml(item.name)}">Remove</button>
+        </div>
+      `).join("") || `<p class="helper-text">No items added yet.</p>`;
+    }
+    if (counterOrderTotal) {
+      counterOrderTotal.textContent = money(counterItemTotal());
+    }
+  }
+
+  function addCounterItem() {
+    const item = menuItems.find((candidate) => String(candidate.id) === String(counterItemSelect?.value));
+    const quantity = Math.max(1, Number(counterItemQty?.value || 1));
+    if (!item) {
+      if (counterOrderMessage) counterOrderMessage.textContent = "Select a menu item first.";
+      return;
+    }
+    const existing = counterItems.find((candidate) => String(candidate.id) === String(item.id));
+    if (existing) {
+      existing.quantity += quantity;
+    } else {
+      counterItems.push({ id: item.id, name: item.name, price: item.price, quantity });
+    }
+    if (counterItemQty) counterItemQty.value = "1";
+    if (counterItemSearch) {
+      counterItemSearch.value = "";
+      counterItemSearch.focus();
+    }
+    if (counterOrderMessage) counterOrderMessage.textContent = "";
+    renderCounterOrder();
+  }
+
+  async function submitCounterOrder(event) {
+    event.preventDefault();
+    if (!counterTableSelect?.value) {
+      counterOrderMessage.textContent = "Select the customer table.";
+      return;
+    }
+    if (!counterItems.length) {
+      counterOrderMessage.textContent = "Add at least one item.";
+      return;
+    }
+    counterOrderMessage.textContent = "Creating counter order...";
+    const submitButton = counterOrderForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    try {
+      const order = await apiFetch("/api/v1/orders", {
+        method: "POST",
+        body: {
+          table_id: counterTableSelect.value,
+          customer_name: counterCustomerName?.value || "Counter Guest",
+          customer_phone: counterCustomerPhone?.value || "",
+          notes: counterOrderNotes?.value || "Counter order",
+          payment_method: "cash",
+          items: counterItems.map((item) => ({
+            menu_item_id: Number(item.id),
+            quantity: Number(item.quantity),
+          })),
+        },
+      });
+      counterItems = [];
+      counterOrderForm.reset();
+      counterOrderMessage.textContent = `Created ${order.order_number}`;
+      dashboardDataSignature = "";
+      renderCounterOrder();
+      await load();
+    } catch (error) {
+      counterOrderMessage.textContent = error.message;
+    } finally {
+      submitButton.disabled = false;
+    }
   }
 
   function saveSeenOrders() {
@@ -1149,8 +1278,6 @@ function initAdminDashboard() {
       actions.push(["cancelled", "Cancel"]);
     } else if (order.status === "ready") {
       actions.push(["completed", "Complete"]);
-    } else if (order.status === "payment_pending") {
-      actions.push(["cancelled", "Cancel"]);
     }
     return actions.map(([status, label]) => (
       `<button class="button mini-button ${status === "cancelled" ? "danger" : ""}" data-quick-status="${status}" data-order-id="${order.id}" type="button">${label}</button>`
@@ -1237,14 +1364,13 @@ function initAdminDashboard() {
   function activeRevenueOrders() {
     return orders.filter((order) => (
       order.status !== "cancelled" &&
-      order.payment_status !== "created" &&
-      order.payment_status !== "failed"
+      ["cash_pending", "paid"].includes(order.payment_status)
     ));
   }
 
   function renderMetrics() {
     const revenue = activeRevenueOrders().reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
-    const pending = orders.filter((order) => ["pending", "payment_pending"].includes(order.status)).length;
+    const pending = orders.filter((order) => order.status === "pending").length;
     const tokenOrders = orders.filter((order) => order.token_number);
     const completedTokens = tokenOrders.filter((order) => order.status === "completed").length;
     const pendingTokens = tokenOrders.filter((order) => ["pending", "preparing", "ready"].includes(order.status)).length;
@@ -1381,7 +1507,7 @@ function initAdminDashboard() {
             <td>
               <div class="order-inline-actions">
                 <button class="button mini-button" data-view-order="${order.id}" type="button">View</button>
-                <button class="button mini-button" data-save-status="${order.id}" type="button" ${order.status === "payment_pending" ? "disabled" : ""}>Save</button>
+                <button class="button mini-button" data-save-status="${order.id}" type="button">Save</button>
                 ${quickStatusButtons(order)}
               </div>
             </td>
@@ -1401,11 +1527,11 @@ function initAdminDashboard() {
             </div>
             <span class="status-pill status-${order.status}">${escapeHtml(order.status.replaceAll("_", " "))}</span>
           </header>
-          <p><strong>Token:</strong> ${order.token_number || "Pending payment"}</p>
+          <p><strong>Token:</strong> ${order.token_number || "Pending"}</p>
           <ul>${items}</ul>
           <div class="order-actions">
             ${statusSelectHtml(order)}
-            <button class="button" data-save-status="${order.id}" type="button" ${order.status === "payment_pending" ? "disabled" : ""}>Update</button>
+            <button class="button" data-save-status="${order.id}" type="button">Update</button>
             <button class="button" data-view-order="${order.id}" type="button">View</button>
             ${quickStatusButtons(order)}
           </div>
@@ -1416,10 +1542,11 @@ function initAdminDashboard() {
     renderMetrics();
     renderTopItems();
     renderSalesChart();
+    renderCounterOrder();
   }
 
   function trackNewOrderAlerts(orderPayload) {
-    const activeStatuses = new Set(["payment_pending", "pending", "preparing", "ready"]);
+    const activeStatuses = new Set(["pending", "preparing", "ready"]);
     const newOrders = orderPayload.filter((order) => (
       activeStatuses.has(order.status) && !knownOrderIds.has(Number(order.id))
     ));
@@ -1436,9 +1563,10 @@ function initAdminDashboard() {
     if (isLoading) return;
     isLoading = true;
     try {
-      const [orderPayload, tablePayload] = await Promise.all([
+      const [orderPayload, tablePayload, menuPayload] = await Promise.all([
         apiFetch("/api/v1/admin/orders"),
         apiFetch("/api/v1/admin/tables"),
+        menuItems.length ? Promise.resolve({ items: menuItems }) : apiFetch("/api/v1/menu"),
       ]);
       const nextSignature = JSON.stringify({ orders: orderPayload, tables: tablePayload });
       if (nextSignature === dashboardDataSignature) {
@@ -1448,6 +1576,7 @@ function initAdminDashboard() {
       trackNewOrderAlerts(orderPayload);
       orders = orderPayload;
       tables = tablePayload;
+      menuItems = (menuPayload.items || []).filter((item) => item.is_available);
       render();
     } finally {
       isLoading = false;
@@ -1478,6 +1607,26 @@ function initAdminDashboard() {
     if (!select) return;
     await updateOrderStatus(orderId, select.value);
   });
+
+  counterAddItem?.addEventListener("click", addCounterItem);
+  counterItemSearch?.addEventListener("input", renderCounterOrder);
+  counterItemSearch?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    addCounterItem();
+  });
+  counterItemQty?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    addCounterItem();
+  });
+  counterOrderItems?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-remove-counter-item]");
+    if (!removeButton) return;
+    counterItems = counterItems.filter((item) => String(item.id) !== String(removeButton.dataset.removeCounterItem));
+    renderCounterOrder();
+  });
+  counterOrderForm?.addEventListener("submit", submitCounterOrder);
 
   orderDetailBody?.addEventListener("click", async (event) => {
     const quickButton = event.target.closest("[data-quick-status]");

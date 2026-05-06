@@ -8,7 +8,7 @@ from app.models import CafeTable, MenuItem, Order, OrderItem
 from app.models.constants import ORDER_STATUSES, TOKEN_STATUSES
 from .errors import NotFoundError, ValidationError
 from .notification_service import send_order_confirmation, send_order_ready
-from .payment_service import apply_checkout_success, create_cash_payment
+from .payment_service import create_cash_payment
 from .pos_service import send_order_to_pos
 from .realtime_service import emit_order_created, emit_order_updated
 from .serializers import serialize_order
@@ -33,9 +33,10 @@ def _normalize_items(items):
             raise ValidationError("Each item requires menu_item_id and quantity.") from None
         if menu_item_id <= 0 or quantity <= 0:
             raise ValidationError("Item ids and quantities must be positive.")
-        if quantity > 25:
+        total_quantity = quantities.get(menu_item_id, 0) + quantity
+        if total_quantity > 25:
             raise ValidationError("Quantity per item cannot exceed 25.")
-        quantities[menu_item_id] = quantities.get(menu_item_id, 0) + quantity
+        quantities[menu_item_id] = total_quantity
         note = (item.get("note") or "").strip()[:240]
         if note:
             existing = notes.get(menu_item_id)
@@ -80,7 +81,7 @@ def create_order(data, config):
 
     payment_method = (data.get("payment_method") or "cash").strip().lower()
     if payment_method != "cash":
-        raise ValidationError("Online payment is disabled. Customers pay directly at the store.")
+        raise ValidationError("Only pay-at-counter orders are supported.")
 
     subtotal = Decimal("0.00")
     order_notes = (data.get("notes") or "").strip()[:1000]
@@ -177,28 +178,6 @@ def after_order_confirmed(order, config):
     emit_order_created(order)
 
 
-def confirm_payment(data, config):
-    payment = apply_checkout_success(data, config)
-    order = payment.order
-    generate_daily_token_for_order(order)
-    db.session.commit()
-    after_order_confirmed(order, config)
-    return order
-
-
-def confirm_payment_from_webhook(result, config):
-    payment = result.get("payment")
-    if not payment:
-        return None
-    order = payment.order
-    if payment.status == "paid" and not order.daily_token:
-        generate_daily_token_for_order(order)
-    db.session.commit()
-    if payment.status == "paid":
-        after_order_confirmed(order, config)
-    return order
-
-
 def update_order_status(order_id, status, config, cancellation_reason=None):
     status = (status or "").strip().lower()
     if status not in ORDER_STATUSES:
@@ -207,9 +186,6 @@ def update_order_status(order_id, status, config, cancellation_reason=None):
         raise ValidationError("Invalid token status.")
 
     order = get_order(order_id)
-    if order.status == "payment_pending" and status != "cancelled":
-        raise ValidationError("Cannot update kitchen status before payment confirmation.")
-
     order.status = status
     if status == "cancelled":
         reason = (cancellation_reason or "").strip()[:240]

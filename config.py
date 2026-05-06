@@ -47,10 +47,6 @@ class BaseConfig:
     RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "120"))
     RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
     PAYMENT_CURRENCY = os.getenv("PAYMENT_CURRENCY", "INR")
-    RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")
-    RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
-    RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "")
-    RAZORPAY_FORCE_MOCK = os.getenv("RAZORPAY_FORCE_MOCK", "false").lower() == "true"
     CAFE_BANNER_VIDEO_URL = os.getenv("CAFE_BANNER_VIDEO_URL", "")
     CAFE_BANNER_POSTER_URL = os.getenv(
         "CAFE_BANNER_POSTER_URL",

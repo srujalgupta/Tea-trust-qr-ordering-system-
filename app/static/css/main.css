@@ -1129,18 +1129,12 @@ p {
   transform: translateY(-1px);
 }
 
-.status-payment_pending {
-  background: #fff4e5;
-  color: #8a4b00;
-}
-
 .status-ready {
   background: #e8f0ff;
   color: var(--ready);
 }
 
-.status-cancelled,
-.status-failed {
+.status-cancelled {
   background: #fff0ee;
   color: var(--danger);
 }
@@ -2451,6 +2445,10 @@ p {
   margin-bottom: 18px;
 }
 
+.counter-order-section {
+  grid-template-columns: 1fr;
+}
+
 .dashboard-panels-bottom {
   grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.95fr);
 }
@@ -2485,6 +2483,59 @@ p {
 .panel-link {
   color: #155dfc;
   font-weight: 800;
+}
+
+.counter-order-form {
+  display: grid;
+  gap: 12px;
+}
+
+.counter-order-grid,
+.counter-item-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.counter-item-picker {
+  grid-template-columns: minmax(180px, 0.9fr) minmax(220px, 1fr) 110px auto;
+}
+
+.counter-order-items {
+  display: grid;
+  gap: 8px;
+}
+
+.counter-order-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #e6ecf2;
+  border-radius: 8px;
+  background: #f9fbfa;
+  padding: 10px;
+}
+
+.counter-order-line span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.counter-order-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-top: 1px dashed #cbd7dc;
+  padding-top: 12px;
+}
+
+.counter-order-footer strong {
+  color: #111827;
+  font-size: 1.18rem;
 }
 
 .sales-chart {
@@ -2671,8 +2722,7 @@ p {
   transform: translateY(-1px);
 }
 
-.status-pending,
-.status-payment_pending {
+.status-pending {
   background: #fff4df;
   color: #b85a00;
 }
@@ -2894,6 +2944,11 @@ p {
   .metric-grid,
   .dashboard-panels,
   .dashboard-panels-bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .counter-order-grid,
+  .counter-item-picker {
     grid-template-columns: 1fr;
   }
 

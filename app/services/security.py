@@ -30,9 +30,7 @@ def _csrf_token_from_request():
 def _is_csrf_exempt():
     if request.method in {"GET", "HEAD", "OPTIONS"}:
         return True
-    return request.endpoint in {
-        "api.razorpay_webhook",
-    }
+    return False
 
 
 def _client_key():
