@@ -7,7 +7,8 @@ from flask import Blueprint, Response, current_app, jsonify, request
 from flask_login import current_user
 
 from app.extensions import socketio
-from app.services.errors import ForbiddenError, ValidationError
+from app.services.auth_service import require_admin_api
+from app.services.errors import ValidationError
 from app.services.external_order_service import (
     create_external_order,
     list_external_orders,
@@ -37,10 +38,17 @@ from app.services.serializers import (
     serialize_category,
     serialize_menu_item,
     serialize_order,
+    serialize_staff_profile,
     serialize_table,
 )
 from app.services.table_service import create_table, list_tables, update_table
 from app.services.upload_service import save_menu_image
+from app.services.user_service import (
+    create_staff_profile,
+    list_staff_profiles,
+    role_options_payload,
+    update_staff_profile,
+)
 
 
 api_bp = Blueprint("api", __name__, url_prefix="/api/v1")
@@ -51,11 +59,6 @@ def _json_body():
     if data is None:
         raise ValidationError("Request body must be valid JSON.")
     return data
-
-
-def _require_admin_api():
-    if not current_user.is_authenticated or not current_user.is_admin:
-        raise ForbiddenError("Admin authentication is required.")
 
 
 @api_bp.get("/health")
@@ -70,6 +73,7 @@ def menu_items():
     include_unavailable = (
         current_user.is_authenticated
         and current_user.is_admin
+        and current_user.can("menu:manage")
         and request.args.get("include_unavailable") == "1"
     )
     return jsonify(menu_payload(category_id, search, include_unavailable))
@@ -109,14 +113,14 @@ def razorpay_webhook():
 
 @api_bp.get("/admin/orders")
 def admin_orders():
-    _require_admin_api()
+    require_admin_api("orders:view")
     status = request.args.get("status") or None
     return jsonify([serialize_order(order) for order in list_orders(status)])
 
 
 @api_bp.patch("/admin/orders/<int:order_id>/status")
 def admin_update_order_status(order_id):
-    _require_admin_api()
+    require_admin_api("orders:update")
     data = _json_body()
     order = update_order_status(
         order_id,
@@ -129,13 +133,13 @@ def admin_update_order_status(order_id):
 
 @api_bp.get("/admin/external-orders")
 def admin_external_orders():
-    _require_admin_api()
+    require_admin_api("external_orders:manage")
     return jsonify(list_external_orders(current_app.instance_path))
 
 
 @api_bp.post("/admin/external-orders")
 def admin_create_external_order():
-    _require_admin_api()
+    require_admin_api("external_orders:manage")
     order = create_external_order(current_app.instance_path, _json_body())
     socketio.emit("external_order_created", order, room="admin_orders")
     return jsonify(order), 201
@@ -143,7 +147,7 @@ def admin_create_external_order():
 
 @api_bp.patch("/admin/external-orders/<order_id>")
 def admin_update_external_order(order_id):
-    _require_admin_api()
+    require_admin_api("external_orders:manage")
     order = update_external_order(current_app.instance_path, order_id, _json_body())
     socketio.emit("external_order_updated", order, room="admin_orders")
     return jsonify(order)
@@ -169,7 +173,7 @@ def _aware_datetime(value):
 
 @api_bp.get("/admin/analytics")
 def admin_analytics():
-    _require_admin_api()
+    require_admin_api("analytics:view")
     days = max(1, min(request.args.get("days", 7, type=int), 365))
     orders = _admin_orders_for_range(days)
     revenue_orders = [order for order in orders if _active_revenue_order(order)]
@@ -227,7 +231,7 @@ def admin_analytics():
 
 @api_bp.get("/admin/export/orders.csv")
 def admin_orders_export():
-    _require_admin_api()
+    require_admin_api("settings:view")
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow([
@@ -266,7 +270,7 @@ def admin_orders_export():
 
 @api_bp.get("/admin/export/menu.csv")
 def admin_menu_export():
-    _require_admin_api()
+    require_admin_api("settings:view")
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(["category", "name", "price", "available", "veg", "bestseller", "tags"])
@@ -287,40 +291,62 @@ def admin_menu_export():
     )
 
 
+@api_bp.get("/admin/staff")
+def admin_staff_profiles():
+    require_admin_api("staff:manage")
+    return jsonify({
+        "roles": role_options_payload(),
+        "staff": [serialize_staff_profile(user) for user in list_staff_profiles()],
+    })
+
+
+@api_bp.post("/admin/staff")
+def admin_create_staff_profile():
+    require_admin_api("staff:manage")
+    return jsonify(serialize_staff_profile(create_staff_profile(_json_body()))), 201
+
+
+@api_bp.patch("/admin/staff/<int:user_id>")
+def admin_update_staff_profile(user_id):
+    require_admin_api("staff:manage")
+    user = update_staff_profile(user_id, _json_body(), actor=current_user)
+    return jsonify(serialize_staff_profile(user))
+
+
 @api_bp.post("/admin/categories")
 def admin_create_category():
-    _require_admin_api()
+    require_admin_api("menu:manage")
     return jsonify(serialize_category(create_category(_json_body()))), 201
 
 
 @api_bp.patch("/admin/categories/<int:category_id>")
 def admin_update_category(category_id):
-    _require_admin_api()
+    require_admin_api("menu:manage")
     return jsonify(serialize_category(update_category(category_id, _json_body())))
 
 
 @api_bp.post("/admin/menu-items")
 def admin_create_menu_item():
-    _require_admin_api()
+    require_admin_api("menu:manage")
     return jsonify(serialize_menu_item(create_menu_item(_json_body()))), 201
 
 
 @api_bp.patch("/admin/menu-items/<int:item_id>")
 def admin_update_menu_item(item_id):
-    _require_admin_api()
+    require_admin_api("menu:manage")
     return jsonify(serialize_menu_item(update_menu_item(item_id, _json_body())))
 
 
 @api_bp.delete("/admin/menu-items/<int:item_id>")
 def admin_delete_menu_item(item_id):
-    _require_admin_api()
+    require_admin_api("menu:manage")
     delete_menu_item(item_id)
     return jsonify({"deleted": True})
 
 
 @api_bp.post("/admin/menu-items/<int:item_id>/image")
 def admin_upload_menu_image(item_id):
-    _require_admin_api()
+    require_admin_api("menu:manage")
     filename = save_menu_image(
         request.files.get("image"),
         current_app.config["UPLOAD_FOLDER"],
@@ -331,7 +357,7 @@ def admin_upload_menu_image(item_id):
 
 @api_bp.get("/admin/tables")
 def admin_tables():
-    _require_admin_api()
+    require_admin_api("tables:manage")
     include_inactive = request.args.get("include_inactive") == "1"
     return jsonify(
         [serialize_table(table) for table in list_tables(include_inactive=include_inactive)]
@@ -340,11 +366,11 @@ def admin_tables():
 
 @api_bp.post("/admin/tables")
 def admin_create_table():
-    _require_admin_api()
+    require_admin_api("tables:manage")
     return jsonify(serialize_table(create_table(_json_body()))), 201
 
 
 @api_bp.patch("/admin/tables/<int:table_id>")
 def admin_update_table(table_id):
-    _require_admin_api()
+    require_admin_api("tables:manage")
     return jsonify(serialize_table(update_table(table_id, _json_body())))

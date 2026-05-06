@@ -90,6 +90,31 @@ def main():
     assert completed.status_code == 200, completed.get_data(as_text=True)
     assert completed.json["payment_status"] == "paid"
 
+    table = client.post(
+        "/api/v1/admin/tables",
+        json={"label": "Patio Table"},
+        headers={"X-CSRFToken": token},
+    )
+    assert table.status_code == 201, table.get_data(as_text=True)
+    assert table.json["table_number"] == 7
+    assert table.json["qr_image_url"].startswith("/qr/table/")
+
+    qr_image = client.get(table.json["qr_image_url"])
+    assert qr_image.status_code == 200, qr_image.get_data(as_text=True)
+    assert qr_image.mimetype == "image/png"
+
+    staff = client.post(
+        "/api/v1/admin/staff",
+        json={
+            "username": "kitchen",
+            "password": "kitchen12345",
+            "role": "kitchen",
+        },
+        headers={"X-CSRFToken": token},
+    )
+    assert staff.status_code == 201, staff.get_data(as_text=True)
+    assert staff.json["role"] == "kitchen"
+
     external = client.post(
         "/api/v1/admin/external-orders",
         json={
@@ -107,6 +132,32 @@ def main():
     external_list = client.get("/api/v1/admin/external-orders")
     assert external_list.status_code == 200
     assert any(row["platform_order_id"] == "SWG-1001" for row in external_list.json)
+
+    logout = client.post("/admin/logout", data={"csrf_token": token})
+    assert logout.status_code in {200, 302}
+
+    kitchen_login = client.post(
+        "/admin/login",
+        data={
+            "username": "kitchen",
+            "password": "kitchen12345",
+            "csrf_token": token,
+        },
+    )
+    assert kitchen_login.status_code in {200, 302}
+
+    kitchen_page = client.get("/admin/kitchen")
+    assert kitchen_page.status_code == 200
+
+    menu_denied = client.get("/admin/menu")
+    assert menu_denied.status_code == 403
+
+    api_denied = client.post(
+        "/api/v1/admin/menu-items",
+        json={"name": "Blocked", "price": "10", "category_id": 1},
+        headers={"X-CSRFToken": token},
+    )
+    assert api_denied.status_code == 403
     print("Smoke test passed.")
 
 

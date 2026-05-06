@@ -1,4 +1,4 @@
-from flask import current_app, has_app_context
+import re
 
 from app.extensions import db
 from app.models import CafeTable
@@ -10,23 +10,67 @@ def _slug_for_table(table_number):
     return f"table-{table_number}"
 
 
-def _table_count_limit():
-    if has_app_context():
-        return int(current_app.config.get("CAFE_TABLE_COUNT", 6))
-    return 6
+def _normalize_slug(value, table_number):
+    slug = (value or _slug_for_table(table_number)).strip().lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", slug).strip("-")
+    if not slug:
+        slug = _slug_for_table(table_number)
+    return slug
 
 
-def _validate_table_number(value):
+def _next_table_number():
+    existing = {
+        number for (number,) in db.session.query(CafeTable.table_number).all()
+    }
+    table_number = 1
+    while table_number in existing:
+        table_number += 1
+    return table_number
+
+
+def _unique_slug(base_slug, table_id=None):
+    slug = base_slug
+    suffix = 2
+    while True:
+        query = CafeTable.query.filter_by(qr_slug=slug)
+        if table_id is not None:
+            query = query.filter(CafeTable.id != table_id)
+        if not query.first():
+            return slug
+        slug = f"{base_slug}-{suffix}"
+        suffix += 1
+
+
+def _ensure_table_number_available(table_number, table_id=None):
+    query = CafeTable.query.filter_by(table_number=table_number)
+    if table_id is not None:
+        query = query.filter(CafeTable.id != table_id)
+    if query.first():
+        raise ValidationError("A table with this number already exists.")
+
+
+def _bool_value(value, default=True):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return bool(value)
+
+
+def _validate_table_number(value, required=True):
+    if value in {None, ""} and not required:
+        return _next_table_number()
     try:
         table_number = int(value)
     except (TypeError, ValueError):
         raise ValidationError("table_number must be a positive integer.") from None
     if table_number <= 0:
         raise ValidationError("table_number must be a positive integer.")
-
-    table_limit = _table_count_limit()
-    if table_number > table_limit:
-        raise ValidationError(f"This cafe is configured for {table_limit} tables.")
     return table_number
 
 
@@ -49,14 +93,16 @@ def get_table(table_id, require_active=False):
 
 
 def create_table(data):
-    table_number = _validate_table_number(data.get("table_number"))
+    table_number = _validate_table_number(data.get("table_number"), required=False)
+    _ensure_table_number_available(table_number)
 
     label = (data.get("label") or f"Table {table_number}").strip()
+    base_slug = _normalize_slug(data.get("qr_slug"), table_number)
     table = CafeTable(
         table_number=table_number,
         label=label,
-        qr_slug=(data.get("qr_slug") or _slug_for_table(table_number)).strip(),
-        is_active=bool(data.get("is_active", True)),
+        qr_slug=_unique_slug(base_slug),
+        is_active=_bool_value(data.get("is_active"), default=True),
     )
     db.session.add(table)
     db.session.commit()
@@ -66,13 +112,15 @@ def create_table(data):
 def update_table(table_id, data):
     table = get_table(table_id)
     if "table_number" in data:
-        table.table_number = _validate_table_number(data.get("table_number"))
+        table_number = _validate_table_number(data.get("table_number"))
+        _ensure_table_number_available(table_number, table.id)
+        table.table_number = table_number
     if "label" in data:
-        table.label = (data.get("label") or "").strip()
+        table.label = (data.get("label") or f"Table {table.table_number}").strip()
     if "qr_slug" in data:
-        table.qr_slug = (data.get("qr_slug") or "").strip()
+        table.qr_slug = _unique_slug(_normalize_slug(data.get("qr_slug"), table.table_number), table.id)
     if "is_active" in data:
-        table.is_active = bool(data.get("is_active"))
+        table.is_active = _bool_value(data.get("is_active"))
     db.session.commit()
     return table
 

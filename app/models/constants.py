@@ -22,3 +22,42 @@ PAYMENT_STATUSES = (
 PAYMENT_METHODS = ("cash", "razorpay")
 
 PAYMENT_PROVIDERS = ("cash", "razorpay", "mock")
+
+STAFF_ROLES = ("owner", "manager", "counter", "kitchen", "menu")
+
+STAFF_ROLE_LABELS = {
+    "owner": "Owner",
+    "manager": "Manager",
+    "counter": "Counter",
+    "kitchen": "Kitchen",
+    "menu": "Menu Manager",
+}
+
+ROLE_PERMISSIONS = {
+    "owner": {"*"},
+    "manager": {
+        "analytics:view",
+        "dashboard:view",
+        "external_orders:manage",
+        "menu:manage",
+        "orders:update",
+        "orders:view",
+        "settings:view",
+        "tables:manage",
+    },
+    "counter": {
+        "analytics:view",
+        "dashboard:view",
+        "external_orders:manage",
+        "orders:update",
+        "orders:view",
+        "tables:manage",
+    },
+    "kitchen": {
+        "orders:update",
+        "orders:view",
+    },
+    "menu": {
+        "menu:manage",
+    },
+}

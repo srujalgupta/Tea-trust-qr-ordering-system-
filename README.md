@@ -5,12 +5,13 @@ Production-oriented QR cafe ordering system built with Flask, SQLAlchemy, Flask-
 ## Features
 
 - Customer menu at `/menu?table=5`
-- Six active table QR links are seeded by default, for tables 1-6
+- Six active table QR links are seeded by default, and more tables can be added from `/admin/tables`
 - Mobile-first sticky category tabs, search, cart, lazy item images, and video banner support
 - Photo-style menu image fallbacks with uploadable item photos in admin
 - Session/local-storage cart with server-side price validation
 - Table-aware customer navigation across menu, cart, checkout, and order status
 - Admin login/logout with Flask-Login and Werkzeug password hashing
+- Staff profiles for owner, manager, counter, kitchen, and menu-only access
 - Live order dashboard with SocketIO updates
 - Admin order detail modal, quick kitchen status actions, unseen-order highlighting, and cancellation reasons
 - Kitchen display mode at `/admin/kitchen`
@@ -18,7 +19,7 @@ Production-oriented QR cafe ordering system built with Flask, SQLAlchemy, Flask-
 - Daily token generation with PostgreSQL advisory locking and SQLite local fallback
 - Pay-at-store checkout flow with cash status tracking
 - Menu item CRUD, image upload, availability toggles
-- Branded table QR poster previews with raw QR download, SVG poster download, and print controls
+- Branded table QR poster previews with automatic local QR generation, raw QR download, SVG poster download, and print controls
 - Order success screen with token, estimated wait, WhatsApp share link, and return-to-menu action
 - Kitchen sound and desktop alerts for new admin dashboard orders
 - Customer checkout remembers name/phone and supports per-item special instructions
@@ -52,8 +53,10 @@ Default dev admin from `.env.example`:
 
 Change those before real use.
 
-The default cafe setup uses six tables. To change that later, set `CAFE_TABLE_COUNT`
-in `.env` and run `flask --app run.py seed-data`.
+The default cafe setup seeds six tables. Add more tables from `/admin/tables`; each
+new table automatically gets a menu link, local QR image, and printable poster.
+Use `CAFE_TABLE_COUNT` only when you want to change how many tables are seeded by
+default.
 
 ## PostgreSQL
 
@@ -99,6 +102,9 @@ the order is completed by admin.
 - `GET /api/v1/admin/analytics`
 - `GET /api/v1/admin/export/orders.csv`
 - `GET /api/v1/admin/export/menu.csv`
+- `GET /api/v1/admin/staff`
+- `POST /api/v1/admin/staff`
+- `PATCH /api/v1/admin/staff/<user_id>`
 - `POST /api/v1/admin/categories`
 - `PATCH /api/v1/admin/categories/<category_id>`
 - `POST /api/v1/admin/menu-items`
@@ -108,6 +114,7 @@ the order is completed by admin.
 - `GET /api/v1/admin/tables`
 - `POST /api/v1/admin/tables`
 - `PATCH /api/v1/admin/tables/<table_id>`
+- `GET /qr/table/<table_id>.png`
 
 Unsafe API requests require the `X-CSRFToken` header.
 

@@ -47,6 +47,19 @@ def serialize_table(table):
         "qr_slug": table.qr_slug,
         "is_active": table.is_active,
         "menu_url": f"/menu?table={table.id}",
+        "qr_image_url": f"/qr/table/{table.id}.png",
+    }
+
+
+def serialize_staff_profile(user):
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email or "",
+        "role": user.role,
+        "role_label": user.role_label,
+        "active": user.active,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
     }
 
 

@@ -15,9 +15,9 @@
   </section>
 
   <form id="tableForm" class="admin-panel form-grid compact-form">
-    <input name="table_number" type="number" min="1" max="{{ table_count }}" placeholder="Table number" required>
+    <input name="table_number" type="number" min="1" inputmode="numeric" placeholder="Next table number">
     <input name="label" placeholder="Label">
-    <button class="button primary" type="submit">Add table</button>
+    <button class="button primary" type="submit">Add table and QR</button>
   </form>
 
   <section id="tablesList" class="admin-list"></section>

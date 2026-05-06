@@ -784,7 +784,6 @@ function initOrderStatus() {
 function initAdminDashboard() {
   const board = document.getElementById("ordersBoard");
   if (!board) return;
-  const dashboard = document.querySelector(".metric-grid");
   const filter = document.getElementById("orderStatusFilter");
   const salesRange = document.getElementById("salesRange");
   const recentBody = document.getElementById("recentOrdersBody");
@@ -798,7 +797,6 @@ function initAdminDashboard() {
   const externalOrderForm = document.getElementById("externalOrderForm");
   const externalOrdersBoard = document.getElementById("externalOrdersBoard");
   const externalOrdersMetric = document.getElementById("externalOrdersMetric");
-  const tableLimit = Number(dashboard?.dataset.tableCount || 0);
   const statusValues = ["pending", "preparing", "ready", "completed", "cancelled"];
   const seenOrdersKey = "qrCafeSeenOrders";
   let orders = [];
@@ -1110,7 +1108,7 @@ function initAdminDashboard() {
     document.getElementById("totalOrdersMetric").textContent = orders.length;
     document.getElementById("totalRevenueMetric").textContent = dashboardMoney(revenue);
     document.getElementById("pendingOrdersMetric").textContent = pending;
-    document.getElementById("activeTablesMetric").textContent = `${tables.length} / ${tableLimit || tables.length}`;
+    document.getElementById("activeTablesMetric").textContent = `${tables.length} active`;
     document.getElementById("lastTokenMetric").textContent = lastToken ? `#${String(lastToken).padStart(4, "0")}` : "#0000";
     document.getElementById("totalTokensMetric").textContent = totalTokens;
     document.getElementById("completedTokensMetric").textContent = completedTokens;
@@ -1765,14 +1763,16 @@ function initAdminTables() {
   const printAllButton = document.getElementById("tablesPrintAll");
   let tableRows = [];
 
-  function qrImageUrl(value, size = 260) {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=14&format=png&data=${encodeURIComponent(value)}`;
+  function qrImageUrl(table, size = 260) {
+    const url = new URL(table.qr_image_url || `/qr/table/${table.id}.png`, window.location.origin);
+    url.searchParams.set("size", size);
+    return url.toString();
   }
 
   function posterSvg(table) {
     const menuUrl = `${window.location.origin}${table.menu_url}`;
     const logoUrl = `${window.location.origin}/static/brand/tea_trust_logo.png`;
-    const qrUrl = qrImageUrl(menuUrl, 520);
+    const qrUrl = qrImageUrl(table, 520);
     return `
       <svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
         <rect width="900" height="1200" fill="#f6f8f7"/>
@@ -1819,9 +1819,9 @@ function initAdminTables() {
 
   function tableCardHtml(table) {
     const menuUrl = `${window.location.origin}${table.menu_url}`;
-    const qrUrl = qrImageUrl(menuUrl);
+    const qrUrl = qrImageUrl(table);
     return `
-      <article class="admin-row table-qr-row">
+      <article class="admin-row table-qr-row" data-table-row="${table.id}">
         <div class="qr-preview">
           ${posterPreviewHtml(table, qrUrl)}
         </div>
@@ -1834,11 +1834,17 @@ function initAdminTables() {
             <span class="status-pill">${table.is_active ? "active" : "inactive"}</span>
           </header>
           <input readonly value="${escapeHtml(menuUrl)}" aria-label="QR menu URL">
+          <div class="table-edit-grid">
+            <input name="table_number" type="number" min="1" value="${table.table_number}" aria-label="Table number">
+            <input name="label" value="${escapeHtml(table.label)}" aria-label="Table label">
+            <label class="check-row"><input type="checkbox" name="is_active" ${table.is_active ? "checked" : ""}> Active</label>
+          </div>
           <div class="row-actions">
             <a class="button mini-button" href="${escapeHtml(qrUrl)}" download="tea-trust-${escapeHtml(table.qr_slug)}.png">Download QR</a>
             <button class="button mini-button" data-download-poster="${table.id}" type="button">Download poster</button>
             <button class="button mini-button" data-print-qr="${table.id}" type="button">Print poster</button>
             <button class="button mini-button" data-copy-table-url="${table.id}" type="button">Copy link</button>
+            <button class="button mini-button" data-save-table="${table.id}" type="button">Save table</button>
           </div>
         </div>
       </article>
@@ -1856,7 +1862,7 @@ function initAdminTables() {
           </div>
           <p class="print-kicker">Scan to order</p>
           <h1>${escapeHtml(table.label)}</h1>
-          <img class="print-qr" src="${escapeHtml(qrImageUrl(menuUrl, 420))}" alt="">
+          <img class="print-qr" src="${escapeHtml(qrImageUrl(table, 420))}" alt="">
           <p class="print-help">Open camera, scan, and place your order</p>
           <small>${escapeHtml(menuUrl)}</small>
         </section>
@@ -1889,7 +1895,7 @@ function initAdminTables() {
   }
 
   async function load() {
-    tableRows = await apiFetch("/api/v1/admin/tables");
+    tableRows = await apiFetch("/api/v1/admin/tables?include_inactive=1");
     list.innerHTML = tableRows.map(tableCardHtml).join("") || `<p class="helper-text">No tables found.</p>`;
   }
 
@@ -1897,6 +1903,7 @@ function initAdminTables() {
     const printButton = event.target.closest("[data-print-qr]");
     const downloadButton = event.target.closest("[data-download-poster]");
     const copyButton = event.target.closest("[data-copy-table-url]");
+    const saveButton = event.target.closest("[data-save-table]");
     if (downloadButton) {
       const table = tableRows.find((candidate) => String(candidate.id) === String(downloadButton.dataset.downloadPoster));
       if (table) downloadPoster(table);
@@ -1912,9 +1919,23 @@ function initAdminTables() {
       copyButton.textContent = "Copied";
       window.setTimeout(() => { copyButton.textContent = "Copy link"; }, 1200);
     }
+    if (saveButton) {
+      const row = saveButton.closest("[data-table-row]");
+      await apiFetch(`/api/v1/admin/tables/${saveButton.dataset.saveTable}`, {
+        method: "PATCH",
+        body: {
+          table_number: row.querySelector('[name="table_number"]').value,
+          label: row.querySelector('[name="label"]').value,
+          is_active: row.querySelector('[name="is_active"]').checked,
+        },
+      });
+      saveButton.textContent = "Saved";
+      window.setTimeout(() => { saveButton.textContent = "Save table"; }, 1200);
+      await load();
+    }
   });
 
-  printAllButton?.addEventListener("click", () => printTables(tableRows));
+  printAllButton?.addEventListener("click", () => printTables(tableRows.filter((table) => table.is_active)));
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -1935,6 +1956,94 @@ function initAdminTables() {
   });
 }
 
+function initAdminSettings() {
+  const list = document.getElementById("staffProfilesList");
+  if (!list) return;
+  const form = document.getElementById("staffProfileForm");
+  const roleSelect = document.getElementById("staffRoleSelect");
+  const summary = document.getElementById("staffProfileSummary");
+  let roles = [];
+  let staff = [];
+
+  function roleOptionsHtml(selectedRole = "counter") {
+    return roles.map((role) => (
+      `<option value="${escapeHtml(role.value)}" ${role.value === selectedRole ? "selected" : ""}>${escapeHtml(role.label)}</option>`
+    )).join("");
+  }
+
+  function render() {
+    if (roleSelect) {
+      roleSelect.innerHTML = roleOptionsHtml("counter");
+    }
+    if (summary) {
+      const activeCount = staff.filter((user) => user.active).length;
+      summary.textContent = `${activeCount} active`;
+    }
+    list.innerHTML = staff.map((user) => `
+      <article class="admin-row staff-profile-row" data-staff-row="${user.id}">
+        <div>
+          <strong>${escapeHtml(user.username)}</strong>
+          <p class="helper-text">${escapeHtml(user.role_label)}${user.email ? ` - ${escapeHtml(user.email)}` : ""}</p>
+        </div>
+        <div class="staff-profile-edit-grid">
+          <input name="username" value="${escapeHtml(user.username)}" aria-label="Username">
+          <input name="email" type="email" value="${escapeHtml(user.email)}" aria-label="Email">
+          <select name="role" aria-label="Profile role">${roleOptionsHtml(user.role)}</select>
+          <input name="password" type="password" placeholder="New password" autocomplete="new-password" minlength="10" aria-label="New password">
+          <label class="check-row"><input type="checkbox" name="active" ${user.active ? "checked" : ""}> Active</label>
+          <button class="button mini-button" data-save-staff="${user.id}" type="button">Save</button>
+        </div>
+      </article>
+    `).join("") || `<p class="helper-text">No staff profiles found.</p>`;
+  }
+
+  async function load() {
+    const payload = await apiFetch("/api/v1/admin/staff");
+    roles = payload.roles || [];
+    staff = payload.staff || [];
+    render();
+  }
+
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    await apiFetch("/api/v1/admin/staff", {
+      method: "POST",
+      body: {
+        username: data.get("username"),
+        email: data.get("email"),
+        role: data.get("role"),
+        password: data.get("password"),
+      },
+    });
+    form.reset();
+    await load();
+  });
+
+  list.addEventListener("click", async (event) => {
+    const saveButton = event.target.closest("[data-save-staff]");
+    if (!saveButton) return;
+    const row = saveButton.closest("[data-staff-row]");
+    await apiFetch(`/api/v1/admin/staff/${saveButton.dataset.saveStaff}`, {
+      method: "PATCH",
+      body: {
+        username: row.querySelector('[name="username"]').value,
+        email: row.querySelector('[name="email"]').value,
+        role: row.querySelector('[name="role"]').value,
+        active: row.querySelector('[name="active"]').checked,
+        password: row.querySelector('[name="password"]').value,
+      },
+    });
+    saveButton.textContent = "Saved";
+    window.setTimeout(() => { saveButton.textContent = "Save"; }, 1200);
+    await load();
+  });
+
+  load().catch((error) => {
+    list.innerHTML = `<p class="helper-text">${escapeHtml(error.message)}</p>`;
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   if (pageId === "customer-menu") initCustomerMenu();
   if (pageId === "customer-cart" || pageId === "customer-checkout") initCustomerCartPage();
@@ -1944,4 +2053,5 @@ document.addEventListener("DOMContentLoaded", () => {
   if (pageId === "admin-analytics") initAdminAnalytics();
   if (pageId === "admin-menu") initAdminMenu();
   if (pageId === "admin-tables") initAdminTables();
+  if (pageId === "admin-settings") initAdminSettings();
 });

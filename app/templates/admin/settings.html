@@ -36,11 +36,11 @@
       <div class="settings-list">
         <p><strong>Cafe name</strong><span>{{ cafe.name }}</span></p>
         <p><strong>Phone</strong><span>{{ cafe.phone }}</span></p>
-        <p><strong>Table count</strong><span>{{ table_count }}</span></p>
+        <p><strong>Seed table count</strong><span>{{ table_count }}</span></p>
         <p><strong>Database</strong><span>{{ database_label }}</span></p>
         <p><strong>Environment</strong><span>{{ environment_name }}</span></p>
       </div>
-      <p class="helper-text">Edit cafe values in `.env`, then restart the server and run seed-data when table count changes.</p>
+      <p class="helper-text">Edit cafe values in `.env`, then restart the server. New tables can be added from Tables.</p>
     </section>
   </section>
 
@@ -68,4 +68,23 @@
       </div>
     </article>
   </section>
+
+  {% if current_user.can('staff:manage') %}
+    <section class="dashboard-card staff-profiles-panel">
+      <header class="panel-header">
+        <h2>Staff Profiles</h2>
+        <span id="staffProfileSummary" class="panel-link">Loading</span>
+      </header>
+
+      <form id="staffProfileForm" class="staff-profile-form">
+        <input name="username" placeholder="Username" autocomplete="off" required>
+        <input name="email" type="email" placeholder="Email">
+        <select id="staffRoleSelect" name="role" aria-label="Profile role" required></select>
+        <input name="password" type="password" placeholder="Temporary password" autocomplete="new-password" minlength="10" required>
+        <button class="button primary" type="submit">Add profile</button>
+      </form>
+
+      <section id="staffProfilesList" class="staff-profile-list" aria-live="polite"></section>
+    </section>
+  {% endif %}
 {% endblock %}

@@ -3,6 +3,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
 from .base import TimestampMixin
+from .constants import ROLE_PERMISSIONS, STAFF_ROLE_LABELS
 
 
 class User(UserMixin, TimestampMixin, db.Model):
@@ -13,6 +14,7 @@ class User(UserMixin, TimestampMixin, db.Model):
     email = db.Column(db.String(255), nullable=True, unique=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=True)
+    role = db.Column(db.String(30), nullable=False, default="owner", index=True)
     active = db.Column(db.Boolean, nullable=False, default=True)
 
     def set_password(self, password):
@@ -24,3 +26,15 @@ class User(UserMixin, TimestampMixin, db.Model):
     @property
     def is_active(self):
         return self.active
+
+    @property
+    def role_label(self):
+        return STAFF_ROLE_LABELS.get(self.role, "Staff")
+
+    @property
+    def permissions(self):
+        return ROLE_PERMISSIONS.get(self.role, set())
+
+    def can(self, permission):
+        permissions = self.permissions
+        return "*" in permissions or permission in permissions

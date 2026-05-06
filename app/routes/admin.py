@@ -2,24 +2,34 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_user, logout_user
 
 from app.extensions import db
-from app.services.auth_service import admin_required, authenticate_user
+from app.services.auth_service import admin_required, authenticate_user, permission_required
 from app.services.errors import AppError
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
+def _default_admin_endpoint(user):
+    if user.can("dashboard:view"):
+        return "admin.dashboard"
+    if user.can("orders:update"):
+        return "admin.kitchen_display"
+    if user.can("menu:manage"):
+        return "admin.menu_manager"
+    return "admin.settings"
+
+
 @admin_bp.get("/")
 def index():
     if current_user.is_authenticated and current_user.is_admin:
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for(_default_admin_endpoint(current_user)))
     return redirect(url_for("admin.login"))
 
 
 @admin_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated and current_user.is_admin:
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for(_default_admin_endpoint(current_user)))
 
     if request.method == "POST":
         try:
@@ -32,7 +42,7 @@ def login():
         else:
             login_user(user)
             flash("Logged in successfully.", "success")
-            return redirect(request.args.get("next") or url_for("admin.dashboard"))
+            return redirect(request.args.get("next") or url_for(_default_admin_endpoint(user)))
 
     return render_template("admin/login.html")
 
@@ -46,37 +56,37 @@ def logout():
 
 
 @admin_bp.get("/dashboard")
-@admin_required
+@permission_required("dashboard:view")
 def dashboard():
     return render_template("admin/dashboard.html")
 
 
 @admin_bp.get("/menu")
-@admin_required
+@permission_required("menu:manage")
 def menu_manager():
     return render_template("admin/menu.html")
 
 
 @admin_bp.get("/tables")
-@admin_required
+@permission_required("tables:manage")
 def table_manager():
     return render_template("admin/tables.html")
 
 
 @admin_bp.get("/kitchen")
-@admin_required
+@permission_required("orders:update")
 def kitchen_display():
     return render_template("admin/kitchen.html")
 
 
 @admin_bp.get("/analytics")
-@admin_required
+@permission_required("analytics:view")
 def analytics():
     return render_template("admin/analytics.html")
 
 
 @admin_bp.get("/settings")
-@admin_required
+@permission_required("settings:view")
 def settings():
     database_uri = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
     database_label = "PostgreSQL" if database_uri.startswith("postgresql") else "SQLite / local"

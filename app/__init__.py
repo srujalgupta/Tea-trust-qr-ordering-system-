@@ -28,9 +28,11 @@ def create_app(config_name=None):
     from . import models as _models  # noqa: F401
 
     from .commands import register_commands
+    from .services.schema_service import ensure_runtime_schema
     from .services.security import register_security
     from .sockets import register_socket_handlers
 
+    ensure_runtime_schema(app)
     register_security(app)
     _register_blueprints(app)
     _register_error_handlers(app)
