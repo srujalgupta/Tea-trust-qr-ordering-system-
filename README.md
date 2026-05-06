@@ -1,6 +1,6 @@
 # QR Cafe Ordering System
 
-Production-oriented QR cafe ordering system built with Flask, SQLAlchemy, Flask-Login, Flask-SocketIO, pay-at-store checkout, delivery-platform order tracking, and PostgreSQL-ready configuration. SQLite is used only as a local fallback when `DATABASE_URL` is empty.
+Production-oriented QR cafe ordering system built with Flask, SQLAlchemy, Flask-Login, Flask-SocketIO, pay-at-store checkout, admin delivery-app portal links, and PostgreSQL-ready configuration. SQLite is used only as a local fallback when `DATABASE_URL` is empty.
 
 ## Features
 
@@ -15,6 +15,7 @@ Production-oriented QR cafe ordering system built with Flask, SQLAlchemy, Flask-
 - Live order dashboard with SocketIO updates
 - Admin order detail modal, quick kitchen status actions, unseen-order highlighting, and cancellation reasons
 - Kitchen display mode at `/admin/kitchen`
+- Dashboard buttons open the Zomato and Swiggy partner portals in a new tab
 - Analytics page with revenue, peak hours, top items, prep time, and CSV export
 - Daily token generation with PostgreSQL advisory locking and SQLite local fallback
 - Pay-at-store checkout flow with cash status tracking
@@ -96,9 +97,6 @@ the order is completed by admin.
 - `GET /api/v1/orders/<order_id>`
 - `GET /api/v1/admin/orders`
 - `PATCH /api/v1/admin/orders/<order_id>/status`
-- `GET /api/v1/admin/external-orders`
-- `POST /api/v1/admin/external-orders`
-- `PATCH /api/v1/admin/external-orders/<order_id>`
 - `GET /api/v1/admin/analytics`
 - `GET /api/v1/admin/export/orders.csv`
 - `GET /api/v1/admin/export/menu.csv`

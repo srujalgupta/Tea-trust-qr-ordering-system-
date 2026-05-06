@@ -115,24 +115,6 @@ def main():
     assert staff.status_code == 201, staff.get_data(as_text=True)
     assert staff.json["role"] == "kitchen"
 
-    external = client.post(
-        "/api/v1/admin/external-orders",
-        json={
-            "platform": "swiggy",
-            "platform_order_id": "SWG-1001",
-            "customer_name": "Delivery Guest",
-            "total_amount": "249",
-            "items_text": "Masala chai\nCheese sandwich",
-        },
-        headers={"X-CSRFToken": token},
-    )
-    assert external.status_code == 201, external.get_data(as_text=True)
-    assert external.json["platform_label"] == "Swiggy"
-
-    external_list = client.get("/api/v1/admin/external-orders")
-    assert external_list.status_code == 200
-    assert any(row["platform_order_id"] == "SWG-1001" for row in external_list.json)
-
     logout = client.post("/admin/logout", data={"csrf_token": token})
     assert logout.status_code in {200, 302}
 

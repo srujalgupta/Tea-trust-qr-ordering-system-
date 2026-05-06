@@ -199,7 +199,7 @@ document.addEventListener("error", (event) => {
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
   const animated = event.target.closest(
-    ".button, .icon-button, .chip, .customer-action-button, .admin-nav-link, .menu-section-toggle, .stepper button",
+    ".button, .icon-button, .chip, .customer-action-button, .admin-nav-link, .delivery-app-button, .menu-section-toggle, .stepper button",
   );
   if (animated) animatePress(animated);
 });
@@ -935,14 +935,10 @@ function initAdminDashboard() {
   const orderDetailTitle = document.getElementById("orderDetailTitle");
   const orderDetailBody = document.getElementById("orderDetailBody");
   const printOrderBillButton = document.getElementById("printOrderBillButton");
-  const externalOrderForm = document.getElementById("externalOrderForm");
-  const externalOrdersBoard = document.getElementById("externalOrdersBoard");
-  const externalOrdersMetric = document.getElementById("externalOrdersMetric");
   const statusValues = ["pending", "preparing", "ready", "completed", "cancelled"];
   const seenOrdersKey = "qrCafeSeenOrders";
   let orders = [];
   let tables = [];
-  let externalOrders = [];
   let isLoading = false;
   let dashboardDataSignature = "";
   let seenOrderIds = new Set(JSON.parse(localStorage.getItem(seenOrdersKey) || "[]"));
@@ -952,7 +948,6 @@ function initAdminDashboard() {
   let audioUnlocked = false;
   let hasLoadedDashboard = false;
   let knownOrderIds = new Set();
-  let knownExternalOrderIds = new Set();
   let selectedOrder = null;
 
   function supportsAlertAudio() {
@@ -1086,26 +1081,11 @@ function initAdminDashboard() {
     });
   }
 
-  function showExternalOrderNotification(order) {
-    if (!alertsEnabled || !("Notification" in window) || Notification.permission !== "granted") return;
-    new Notification(`New ${order.platform_label} order`, {
-      body: `${order.platform_order_id} - ${money(order.total_amount)}`,
-      icon: "/static/brand/tea_trust_logo.png",
-    });
-  }
-
   function alertForNewOrder(order) {
     knownOrderIds.add(Number(order.id));
     playRepeatingKitchenTone(5000);
     announceNewOrder();
     showOrderNotification(order);
-  }
-
-  function alertForNewExternalOrder(order) {
-    knownExternalOrderIds.add(String(order.id));
-    playRepeatingKitchenTone(5000);
-    announceNewOrder("New delivery order");
-    showExternalOrderNotification(order);
   }
 
   async function enableAlerts() {
@@ -1186,60 +1166,6 @@ function initAdminDashboard() {
       },
     });
     await load();
-  }
-
-  function externalStatusButtons(order) {
-    const actions = [];
-    if (order.status === "pending") {
-      actions.push(["preparing", "Accept"]);
-      actions.push(["cancelled", "Cancel"]);
-    } else if (order.status === "preparing") {
-      actions.push(["ready", "Ready"]);
-      actions.push(["cancelled", "Cancel"]);
-    } else if (order.status === "ready") {
-      actions.push(["completed", "Complete"]);
-    }
-    return actions.map(([status, label]) => (
-      `<button class="button mini-button ${status === "cancelled" ? "danger" : ""}" data-external-status="${status}" data-external-order="${escapeHtml(order.id)}" type="button">${label}</button>`
-    )).join("");
-  }
-
-  async function updateExternalOrderStatus(orderId, status) {
-    await apiFetch(`/api/v1/admin/external-orders/${encodeURIComponent(orderId)}`, {
-      method: "PATCH",
-      body: { status },
-    });
-    await load();
-  }
-
-  function renderExternalOrders() {
-    if (!externalOrdersBoard) return;
-    const active = externalOrders.filter((order) => ["pending", "preparing", "ready"].includes(order.status));
-    if (externalOrdersMetric) {
-      externalOrdersMetric.textContent = `${active.length} active`;
-    }
-    externalOrdersBoard.innerHTML = externalOrders.slice(0, 8).map((order) => {
-      const items = (order.items || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
-      return `
-        <article class="external-order-card status-${escapeHtml(order.status)}">
-          <header>
-            <div>
-              <strong>${escapeHtml(order.platform_label)}</strong>
-              <p class="helper-text">${escapeHtml(order.platform_order_id)}</p>
-            </div>
-            <span class="status-pill status-${escapeHtml(order.status)}">${escapeHtml(order.status.replaceAll("_", " "))}</span>
-          </header>
-          <div class="external-order-meta">
-            <span>${escapeHtml(order.customer_name || "Delivery customer")}</span>
-            <strong>${money(order.total_amount)}</strong>
-          </div>
-          <ul>${items}</ul>
-          <div class="order-actions">
-            ${externalStatusButtons(order) || `<p class="helper-text">No quick actions for this status.</p>`}
-          </div>
-        </article>
-      `;
-    }).join("") || `<p class="helper-text">No Zomato or Swiggy orders added yet.</p>`;
   }
 
   function orderNotesHtml(order) {
@@ -1490,25 +1416,19 @@ function initAdminDashboard() {
     renderMetrics();
     renderTopItems();
     renderSalesChart();
-    renderExternalOrders();
   }
 
-  function trackNewOrderAlerts(orderPayload, externalOrderPayload) {
+  function trackNewOrderAlerts(orderPayload) {
     const activeStatuses = new Set(["payment_pending", "pending", "preparing", "ready"]);
     const newOrders = orderPayload.filter((order) => (
       activeStatuses.has(order.status) && !knownOrderIds.has(Number(order.id))
     ));
-    const newExternalOrders = externalOrderPayload.filter((order) => (
-      activeStatuses.has(order.status) && !knownExternalOrderIds.has(String(order.id))
-    ));
 
     if (hasLoadedDashboard) {
       newOrders.forEach(alertForNewOrder);
-      newExternalOrders.forEach(alertForNewExternalOrder);
     }
 
     knownOrderIds = new Set(orderPayload.map((order) => Number(order.id)));
-    knownExternalOrderIds = new Set(externalOrderPayload.map((order) => String(order.id)));
     hasLoadedDashboard = true;
   }
 
@@ -1516,20 +1436,18 @@ function initAdminDashboard() {
     if (isLoading) return;
     isLoading = true;
     try {
-      const [orderPayload, tablePayload, externalOrderPayload] = await Promise.all([
+      const [orderPayload, tablePayload] = await Promise.all([
         apiFetch("/api/v1/admin/orders"),
         apiFetch("/api/v1/admin/tables"),
-        apiFetch("/api/v1/admin/external-orders"),
       ]);
-      const nextSignature = JSON.stringify({ orders: orderPayload, tables: tablePayload, externalOrders: externalOrderPayload });
+      const nextSignature = JSON.stringify({ orders: orderPayload, tables: tablePayload });
       if (nextSignature === dashboardDataSignature) {
         return;
       }
       dashboardDataSignature = nextSignature;
-      trackNewOrderAlerts(orderPayload, externalOrderPayload);
+      trackNewOrderAlerts(orderPayload);
       orders = orderPayload;
       tables = tablePayload;
-      externalOrders = externalOrderPayload;
       render();
     } finally {
       isLoading = false;
@@ -1559,31 +1477,6 @@ function initAdminDashboard() {
     const select = scope.querySelector(`[data-status-for="${orderId}"]`);
     if (!select) return;
     await updateOrderStatus(orderId, select.value);
-  });
-
-  document.querySelector(".delivery-orders-panel")?.addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-external-status]");
-    if (!button) return;
-    await updateExternalOrderStatus(button.dataset.externalOrder, button.dataset.externalStatus);
-  });
-
-  externalOrderForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const data = new FormData(externalOrderForm);
-    const payload = {
-      platform: data.get("platform"),
-      platform_order_id: data.get("platform_order_id"),
-      customer_name: data.get("customer_name"),
-      total_amount: data.get("total_amount"),
-      items_text: data.get("items_text"),
-    };
-    await apiFetch("/api/v1/admin/external-orders", {
-      method: "POST",
-      body: payload,
-    });
-    externalOrderForm.reset();
-    dashboardDataSignature = "";
-    await load();
   });
 
   orderDetailBody?.addEventListener("click", async (event) => {
@@ -1616,15 +1509,6 @@ function initAdminDashboard() {
       load();
     });
     socket.on("order_updated", load);
-    socket.on("external_order_created", (order) => {
-      alertForNewExternalOrder(order);
-      dashboardDataSignature = "";
-      load();
-    });
-    socket.on("external_order_updated", () => {
-      dashboardDataSignature = "";
-      load();
-    });
   }
   setInterval(load, 3000);
   load().catch((error) => {
@@ -1663,28 +1547,6 @@ function kitchenOrderCard(order) {
   `;
 }
 
-function externalKitchenOrderCard(order) {
-  const items = (order.items || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
-  const actions = {
-    pending: [["preparing", "Accept"]],
-    preparing: [["ready", "Ready"]],
-    ready: [["completed", "Complete"]],
-  }[order.status] || [];
-  return `
-    <article class="kitchen-card external-kitchen-card">
-      <header>
-        <span>${escapeHtml(order.platform_label)}</span>
-        <strong>${escapeHtml(order.platform_order_id)}</strong>
-      </header>
-      <p>${escapeHtml(order.customer_name || "Delivery customer")} - ${money(order.total_amount)}</p>
-      <ul>${items}</ul>
-      <div class="order-actions">
-        ${actions.map(([status, label]) => `<button class="button primary" data-external-kitchen-status="${status}" data-external-order="${escapeHtml(order.id)}" type="button">${label}</button>`).join("")}
-      </div>
-    </article>
-  `;
-}
-
 function initKitchenDisplay() {
   const board = document.querySelector(".kitchen-board");
   if (!board) return;
@@ -1700,43 +1562,24 @@ function initKitchenDisplay() {
   };
   let signature = "";
 
-  function render(orders, externalOrders) {
+  function render(orders) {
     Object.entries(columns).forEach(([status, element]) => {
       const statusOrders = orders.filter((order) => order.status === status);
-      const statusExternalOrders = externalOrders.filter((order) => order.status === status);
-      counts[status].textContent = statusOrders.length + statusExternalOrders.length;
-      element.innerHTML = [
-        ...statusOrders.map(kitchenOrderCard),
-        ...statusExternalOrders.map(externalKitchenOrderCard),
-      ].join("") || `<p class="helper-text">No ${status.replaceAll("_", " ")} orders.</p>`;
+      counts[status].textContent = statusOrders.length;
+      element.innerHTML = statusOrders.map(kitchenOrderCard).join("") || `<p class="helper-text">No ${status.replaceAll("_", " ")} orders.</p>`;
     });
   }
 
   async function load() {
-    const [orders, externalOrders] = await Promise.all([
-      apiFetch("/api/v1/admin/orders"),
-      apiFetch("/api/v1/admin/external-orders"),
-    ]);
+    const orders = await apiFetch("/api/v1/admin/orders");
     const active = orders.filter((order) => ["pending", "preparing", "ready"].includes(order.status));
-    const activeExternal = externalOrders.filter((order) => ["pending", "preparing", "ready"].includes(order.status));
-    const nextSignature = JSON.stringify({ active, activeExternal });
+    const nextSignature = JSON.stringify({ active });
     if (nextSignature === signature) return;
     signature = nextSignature;
-    render(active, activeExternal);
+    render(active);
   }
 
   board.addEventListener("click", async (event) => {
-    const externalButton = event.target.closest("[data-external-kitchen-status]");
-    if (externalButton) {
-      await apiFetch(`/api/v1/admin/external-orders/${encodeURIComponent(externalButton.dataset.externalOrder)}`, {
-        method: "PATCH",
-        body: { status: externalButton.dataset.externalKitchenStatus },
-      });
-      signature = "";
-      await load();
-      return;
-    }
-
     const button = event.target.closest("[data-kitchen-status]");
     if (!button) return;
     await apiFetch(`/api/v1/admin/orders/${button.dataset.orderId}/status`, {
@@ -1752,8 +1595,6 @@ function initKitchenDisplay() {
     socket.emit("admin_join");
     socket.on("order_created", load);
     socket.on("order_updated", load);
-    socket.on("external_order_created", load);
-    socket.on("external_order_updated", load);
   }
   setInterval(load, 5000);
   load().catch(() => {});

@@ -131,28 +131,24 @@
   </section>
 
   <section class="dashboard-panels">
-    <article class="dashboard-card delivery-orders-panel">
+    <article class="dashboard-card delivery-access-panel">
       <header class="panel-header">
         <div>
-          <h2>Zomato / Swiggy Orders</h2>
-          <p class="helper-text">Add delivery app orders here to see them on this screen.</p>
+          <h2>Delivery Apps</h2>
+          <p class="helper-text">Official partner portals</p>
         </div>
-        <span id="externalOrdersMetric" class="panel-link">0 active</span>
       </header>
 
-      <form id="externalOrderForm" class="external-order-form">
-        <select name="platform" aria-label="Delivery platform" required>
-          <option value="zomato">Zomato</option>
-          <option value="swiggy">Swiggy</option>
-        </select>
-        <input name="platform_order_id" placeholder="App order ID">
-        <input name="customer_name" placeholder="Customer name">
-        <input name="total_amount" type="number" min="0" step="0.01" placeholder="Amount">
-        <textarea name="items_text" placeholder="Items, one per line" required></textarea>
-        <button class="button primary" type="submit">Add delivery order</button>
-      </form>
-
-      <div id="externalOrdersBoard" class="external-orders-board" aria-live="polite"></div>
+      <div class="delivery-app-actions" aria-label="Delivery app partner portals">
+        <a class="delivery-app-button zomato-link" href="https://www.zomato.com/partners/login" target="_blank" rel="noopener noreferrer">
+          <span>Z</span>
+          <strong>Open Zomato</strong>
+        </a>
+        <a class="delivery-app-button swiggy-link" href="https://partner.swiggy.com/login" target="_blank" rel="noopener noreferrer">
+          <span>S</span>
+          <strong>Open Swiggy</strong>
+        </a>
+      </div>
     </article>
   </section>
 

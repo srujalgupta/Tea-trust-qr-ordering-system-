@@ -1709,62 +1709,71 @@ p {
   min-height: 62px;
 }
 
-.delivery-orders-panel {
+.delivery-access-panel {
   grid-column: 1 / -1;
 }
 
-.external-order-form {
+.delivery-app-actions {
   display: grid;
-  grid-template-columns: 150px minmax(140px, 1fr) minmax(140px, 1fr) 130px;
-  gap: 10px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
 }
 
-.external-order-form textarea {
-  grid-column: 1 / -2;
-  min-height: 72px;
-}
-
-.external-order-form button {
-  min-height: 72px;
-}
-
-.external-orders-board {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
-}
-
-.external-order-card {
-  display: grid;
-  gap: 10px;
-  border: 1px solid var(--line);
+.delivery-app-button {
+  min-height: 108px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #dfe7f0;
   border-radius: 8px;
   background: #fff;
-  padding: 14px;
+  padding: 20px;
+  color: #111827;
+  text-decoration: none;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.2s ease,
+    color 0.18s ease,
+    transform 0.22s var(--ease-out);
 }
 
-.external-order-card header,
-.external-order-meta {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 12px;
+.delivery-app-button span {
+  width: 54px;
+  height: 54px;
+  border-radius: 8px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #fff;
+  font-size: 1.35rem;
+  font-weight: 900;
 }
 
-.external-order-meta strong {
-  color: var(--accent-strong);
-  white-space: nowrap;
+.delivery-app-button strong {
+  font-size: 1.12rem;
 }
 
-.external-order-card ul {
-  margin: 0;
-  padding-left: 20px;
+.delivery-app-button:hover {
+  border-color: #c7d4e3;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+  transform: translateY(-2px);
 }
 
-.external-kitchen-card {
-  border-color: #f0c98b;
-  background: #fffaf0;
+.zomato-link span {
+  background: #e23744;
+}
+
+.zomato-link:hover {
+  color: #b91524;
+}
+
+.swiggy-link span {
+  background: #fc8019;
+}
+
+.swiggy-link:hover {
+  color: #b95000;
 }
 
 .admin-row-grid {
@@ -2918,17 +2927,12 @@ p {
 
   .compact-form,
   .admin-row-grid,
-  .external-order-form,
+  .delivery-app-actions,
   .staff-profile-form,
   .staff-profile-row,
   .staff-profile-edit-grid,
   .table-edit-grid {
     grid-template-columns: 1fr;
-  }
-
-  .external-order-form textarea,
-  .external-order-form button {
-    grid-column: auto;
   }
 
   .order-detail-grid,
@@ -3064,9 +3068,7 @@ p {
     justify-items: stretch;
   }
 
-  .receipt-header,
-  .external-order-card header,
-  .external-order-meta {
+  .receipt-header {
     align-items: stretch;
     flex-direction: column;
   }

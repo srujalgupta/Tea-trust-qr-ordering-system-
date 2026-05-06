@@ -38,7 +38,6 @@ ROLE_PERMISSIONS = {
     "manager": {
         "analytics:view",
         "dashboard:view",
-        "external_orders:manage",
         "menu:manage",
         "orders:update",
         "orders:view",
@@ -48,7 +47,6 @@ ROLE_PERMISSIONS = {
     "counter": {
         "analytics:view",
         "dashboard:view",
-        "external_orders:manage",
         "orders:update",
         "orders:view",
         "tables:manage",
