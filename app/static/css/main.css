@@ -1537,9 +1537,16 @@ p {
   font-size: 1.22rem;
 }
 
-.receipt-header span {
+.receipt-header span,
+.receipt-header small {
+  display: block;
   color: var(--muted);
   font-weight: 800;
+}
+
+.receipt-header small {
+  margin-top: 3px;
+  font-size: 0.82rem;
 }
 
 .receipt-header > strong {
@@ -1563,6 +1570,11 @@ p {
 .receipt-items .receipt-item {
   border-bottom: 1px dashed #e3ebee;
   padding-bottom: 8px;
+}
+
+.receipt-item small {
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .receipt-items .receipt-item:last-child {
@@ -1655,6 +1667,14 @@ p {
 .modal-header h2 {
   margin: 0;
   font-size: 1.3rem;
+}
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .modal-body {
@@ -1789,12 +1809,13 @@ p {
 
 .table-qr-row {
   display: grid;
-  grid-template-columns: 152px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 174px) minmax(0, 1fr);
   gap: 16px;
+  align-items: start;
 }
 
 .qr-preview {
-  width: 174px;
+  width: 100%;
   min-height: 232px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1806,6 +1827,7 @@ p {
 
 .qr-poster-preview {
   width: 156px;
+  max-width: 100%;
   min-height: 214px;
   border: 1px solid #dce4e8;
   border-radius: 8px;
@@ -1818,6 +1840,7 @@ p {
 }
 
 .poster-brand {
+  min-width: 0;
   display: grid;
   justify-items: center;
   gap: 4px;
@@ -1833,9 +1856,11 @@ p {
 }
 
 .poster-brand strong {
+  max-width: 100%;
   color: var(--ink);
   font-size: 0.72rem;
   line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
 .qr-poster-preview span {
@@ -1846,10 +1871,12 @@ p {
 }
 
 .qr-poster-preview h3 {
+  max-width: 100%;
   margin: 0;
   color: var(--accent-strong);
   font-size: 1.18rem;
-  line-height: 1;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
 }
 
 .poster-qr {
@@ -1865,12 +1892,47 @@ p {
 .qr-poster-preview small {
   color: var(--muted);
   font-size: 0.68rem;
+  overflow-wrap: anywhere;
 }
 
 .table-qr-main {
   min-width: 0;
   display: grid;
   gap: 10px;
+}
+
+.table-qr-main header {
+  min-width: 0;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.table-qr-main header > div {
+  min-width: 0;
+}
+
+.table-qr-main header strong,
+.table-qr-main .helper-text {
+  overflow-wrap: anywhere;
+}
+
+.table-qr-main .status-pill {
+  flex-shrink: 0;
+}
+
+.table-qr-main > input[readonly] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-edit-grid input,
+.table-edit-grid .check-row {
+  min-width: 0;
+}
+
+.table-qr-main .row-actions .mini-button {
+  flex: 1 1 128px;
 }
 
 .table-edit-grid {
@@ -2626,6 +2688,8 @@ p {
   min-height: 34px;
   padding: 6px 10px;
   font-size: 0.86rem;
+  white-space: normal;
+  text-align: center;
 }
 
 .empty-cell {

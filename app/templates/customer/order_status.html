@@ -12,16 +12,17 @@
     </h1>
     <p id="tokenStatus" class="status-pill status-{{ order.status }}">{{ order.status.replace("_", " ").title() }}</p>
     <p id="estimatedWait" class="success-wait">Estimated wait: 12-18 minutes</p>
-    <p id="paymentNotice" class="payment-notice">Payment at store. Please pay directly at the counter when collecting your order.</p>
+    <p id="paymentNotice" class="payment-notice">Pay at store. Please pay directly at the counter when collecting your order.</p>
     <div class="success-actions">
       <a class="button primary" id="successBackToMenu" href="{{ url_for('customer.menu', table=order.table.id) if order.table else url_for('customer.menu') }}">Back to menu</a>
+      <button class="button" id="printBillButton" type="button">Print bill</button>
       <a class="button" id="whatsAppConfirmLink" href="#" target="_blank" rel="noopener">Share confirmation</a>
     </div>
     <p class="helper-text">This screen updates automatically when the kitchen changes your order status.</p>
   </section>
 
   <section class="admin-panel">
-    <h2>Order details</h2>
+    <h2>Bill</h2>
     <div id="orderStatusDetails" class="order-detail-list"></div>
   </section>
 {% endblock %}

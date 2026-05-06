@@ -77,12 +77,20 @@ def _validate_config(app):
         return
 
     missing = []
-    if app.config["SECRET_KEY"] == "dev-only-change-me":
-        missing.append("SECRET_KEY")
+    if (
+        not app.config["SECRET_KEY"]
+        or app.config["SECRET_KEY"] == "dev-only-change-me"
+        or len(app.config["SECRET_KEY"]) < 32
+    ):
+        missing.append("SECRET_KEY (32+ characters)")
     if not app.config.get("SQLALCHEMY_DATABASE_URI"):
         missing.append("DATABASE_URL")
-    if app.config["ADMIN_PASSWORD"] == "admin12345":
-        missing.append("ADMIN_PASSWORD")
+    if (
+        not app.config["ADMIN_PASSWORD"]
+        or app.config["ADMIN_PASSWORD"] == "admin12345"
+        or len(app.config["ADMIN_PASSWORD"]) < 10
+    ):
+        missing.append("ADMIN_PASSWORD (10+ characters, not default)")
 
     if missing:
         raise RuntimeError(

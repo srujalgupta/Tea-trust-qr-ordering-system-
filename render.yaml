@@ -13,6 +13,12 @@ services:
         value: eventlet
       - key: SECRET_KEY
         generateValue: true
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_EMAIL
+        value: admin@example.com
       - key: DATABASE_URL
         fromDatabase:
           name: qr-cafe-db

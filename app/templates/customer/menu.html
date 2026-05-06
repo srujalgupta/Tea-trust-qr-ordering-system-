@@ -22,7 +22,7 @@
       </div>
       <p class="eyebrow">{% if table %}Ordering for {{ table.label }}{% else %}{{ cafe.subtitle }}{% endif %}</p>
       <h1>{{ cafe.name }}</h1>
-      <p>{{ cafe.tagline }}. Choose your favourites and track your token live. Call {{ cafe.phone }}.</p>
+      <p>{{ cafe.tagline }}. Choose your favorites and track your token live. Call {{ cafe.phone }}.</p>
       <div class="menu-hero-actions">
         <a class="button primary" href="#menuList">Browse menu</a>
         <a class="button hero-ghost-button" href="{{ url_for('customer.cart', table=table.id) if table else url_for('customer.cart') }}">View cart</a>

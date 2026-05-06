@@ -141,9 +141,9 @@ Use one worker for Flask-SocketIO unless you add a supported message queue such 
 ### Production Checklist
 
 - Set `APP_ENV=production` and `FLASK_CONFIG=production`.
-- Set a strong random `SECRET_KEY`; the dev fallback is blocked in production.
+- Set a strong random `SECRET_KEY` with at least 32 characters; the dev fallback is blocked in production.
 - Set `DATABASE_URL` to a PostgreSQL database, then run `flask --app run.py init-db` and `flask --app run.py seed-data`.
-- Change `ADMIN_PASSWORD` from `admin12345`; the app refuses to start in production with the default password.
+- Change `ADMIN_PASSWORD` from `admin12345` to a password with at least 10 characters; the app refuses to start in production with the default password.
 - Confirm `CAFE_TABLE_COUNT`, then open `/admin/tables` to download or print the QR for each table.
 - Set `SOCKETIO_ASYNC_MODE=eventlet` for Render/Railway-style SocketIO deployment.
 

@@ -72,53 +72,105 @@ function generatedFoodArt(item) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
+function unsplashPhoto(photoId) {
+  return `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=900&q=80`;
+}
+
 const REAL_FOOD_PHOTOS = [
   {
-    test: /(tea|chai|tulasi|pudina|elaichi|kesar|darjeeling|green lemon|iced tea)/i,
-    url: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=900&q=80",
+    test: /(masala|ginger|elaichi|pudina|tulasi|tulsi|cinnamon|kesar).*tea|tea with milk|chai/i,
+    url: unsplashPhoto("photo-1625033405953-f20401c7d848"),
   },
   {
-    test: /(coffee|bournvita|chocolate|milk|cold coffee|iced coffee)/i,
-    url: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=900&q=80",
+    test: /(black lemon|darjeeling|green lemon|organic tulsi|lemon tea|green tea|tea without milk)/i,
+    url: unsplashPhoto("photo-1758705206938-a196ac3ae3bb"),
   },
   {
-    test: /(toast|garlic bread|bread|khari|bun|maska)/i,
-    url: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80",
+    test: /(ice tea|iced tea|fresh lime|lime water|peach|muskmelon|mixed berries)/i,
+    url: unsplashPhoto("photo-1758705206938-a196ac3ae3bb"),
   },
   {
-    test: /(sandwich|club|coleslow|chutney|paneer sandwich)/i,
-    url: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=900&q=80",
+    test: /(cold coffee|iced coffee|black iced coffee|choco fiesta)/i,
+    url: unsplashPhoto("photo-1770299258214-1b7bc604e3fd"),
   },
   {
-    test: /(burger)/i,
-    url: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=80",
+    test: /(hot chocolate|bournvita|kesar masala milk|milk)/i,
+    url: unsplashPhoto("photo-1542990253-0d0f5be5f0ed"),
   },
   {
-    test: /(fries|wedges|nuggets|crispers|shots|fingers|popcorn|smiles|triangle)/i,
-    url: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=900&q=80",
+    test: /(coffee)/i,
+    url: unsplashPhoto("photo-1509042239860-f550ce710b93"),
   },
   {
-    test: /(mocktail|mojito|curacao|pomegranate|green apple)/i,
-    url: "https://images.unsplash.com/photo-1536935338788-846bb9981813?auto=format&fit=crop&w=900&q=80",
+    test: /(garlic bread|chilly cheese|corn cheese|veg\.? supreme|open toast)/i,
+    url: unsplashPhoto("photo-1761321982794-6165b979f511"),
   },
   {
-    test: /(shake|oreo|kit kat|snickers|vanilla|strawberry|banana|lychee|kiwi|guava)/i,
-    url: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=900&q=80",
+    test: /(bread butter|bread butter jam|toast|khari|bun|maska)/i,
+    url: unsplashPhoto("photo-1509440159596-0249088772ff"),
   },
   {
-    test: /(maggi|noodles)/i,
-    url: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=900&q=80",
+    test: /(khakhra|bhakhri|thepla|flatbread|kathiyawadi)/i,
+    url: unsplashPhoto("photo-1767114915936-745dd372f1d8"),
   },
   {
-    test: /(khakhra|bhakhri|thepla)/i,
-    url: "https://images.unsplash.com/photo-1624374053855-39a5a1a41402?auto=format&fit=crop&w=900&q=80",
+    test: /(chocolate sandwich)/i,
+    url: unsplashPhoto("photo-1578985545062-69928b1d9587"),
+  },
+  {
+    test: /(sandwich|club|coleslow|chutney|paneer sandwich|mexican|maxican|heritage)/i,
+    url: unsplashPhoto("photo-1528735602780-2552fd46c7af"),
+  },
+  {
+    test: /(vada pav|paneer tandoori burger|burger)/i,
+    url: unsplashPhoto("photo-1568901346375-23c9450c58cd"),
+  },
+  {
+    test: /(fries|wedges|nuggets|crispers|shotz|shots|fingers|popcorn|smiles|triangle|potato balls|v crispers)/i,
+    url: unsplashPhoto("photo-1573080496219-bb080dd4f877"),
+  },
+  {
+    test: /(blue curacao)/i,
+    url: unsplashPhoto("photo-1746950523046-a4db7f176e3d"),
+  },
+  {
+    test: /(mojito|mint|green apple mocktail)/i,
+    url: unsplashPhoto("photo-1603064752734-4c48eff53d05"),
+  },
+  {
+    test: /(mocktail|pomegranate mocktail|blackcurrant mocktail|black current mocktail)/i,
+    url: unsplashPhoto("photo-1536935338788-846bb9981813"),
+  },
+  {
+    test: /(oreo|kit kat|snickers|five star|caramel chocolate|chocolate shake)/i,
+    url: unsplashPhoto("photo-1761655439819-458513191d74"),
+  },
+  {
+    test: /(shake|vanilla|strawberry|banana|lychee|kiwi|guava|pineapple|blueberry|blue berry|caramel)/i,
+    url: unsplashPhoto("photo-1572490122747-3968b75cc699"),
+  },
+  {
+    test: /(cheese veg\.? maggi|maggi|noodles)/i,
+    url: unsplashPhoto("photo-1692273212247-f5efb3fc9b87"),
+  },
+  {
+    test: /(cheese|paneer add-on|paneer add on)/i,
+    url: unsplashPhoto("photo-1486297678162-eb2a19b0a32d"),
+  },
+  {
+    test: /(honey add-on|honey add on|honey)/i,
+    url: unsplashPhoto("photo-1587049352846-4a222e784d38"),
+  },
+  {
+    test: /(chocolate sauce add-on|chocolate sauce add on|chocolate sauce)/i,
+    url: unsplashPhoto("photo-1606313564200-e75d5e30476c"),
   },
 ];
 
 function realFoodPhoto(item) {
   const text = `${item.category_name || ""} ${item.name || ""} ${(item.tags || []).join(" ")}`;
   const match = REAL_FOOD_PHOTOS.find((photo) => photo.test.test(text));
-  return match?.url || "https://images.unsplash.com/photo-1543352634-a1c51d9f1fa7?auto=format&fit=crop&w=900&q=80";
+  return match?.url || unsplashPhoto("photo-1543352634-a1c51d9f1fa7");
 }
 
 function imageTag(item, className = "") {
@@ -673,14 +725,26 @@ function paymentLabel(order) {
   return String(order.payment_status || "pending").replaceAll("_", " ");
 }
 
+function formatBillDate(value) {
+  if (!value) return "Just now";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Just now";
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 function receiptHtml(order, options = {}) {
+  const billTitle = options.title || "Bill";
+  const showCustomer = options.showCustomer || Boolean(order.customer_name || order.customer_phone);
   const lines = (order.items || []).map((item) => (
     `<div class="receipt-item">
-      <span>${escapeHtml(item.item_name)} x ${item.quantity}</span>
+      <span>${escapeHtml(item.item_name)} <small>x ${item.quantity}</small></span>
       <strong>${money(item.line_total)}</strong>
     </div>`
   )).join("");
-  const customerRows = options.showCustomer
+  const customerRows = showCustomer
     ? `<p><strong>Customer</strong><span>${escapeHtml(order.customer_name || "Guest")}</span></p>
        <p><strong>Phone</strong><span>${escapeHtml(order.customer_phone || "Not shared")}</span></p>`
     : "";
@@ -688,9 +752,10 @@ function receiptHtml(order, options = {}) {
     <section class="receipt-card">
       <header class="receipt-header">
         <div>
-          <p class="eyebrow">Receipt</p>
+          <p class="eyebrow">${escapeHtml(billTitle)}</p>
           <h2>${escapeHtml(cafeName)}</h2>
-          <span>${escapeHtml(order.order_number)}</span>
+          <span>Bill ${escapeHtml(order.order_number)}</span>
+          <small>${escapeHtml(formatBillDate(order.created_at))}</small>
         </div>
         <strong>${order.token_number ? `Token ${order.token_number}` : "Token pending"}</strong>
       </header>
@@ -707,13 +772,52 @@ function receiptHtml(order, options = {}) {
         <div><span>Taxes</span><strong>${money(order.tax_amount)}</strong></div>
         <div class="receipt-grand-total"><span>Total payable</span><strong>${money(order.total_amount)}</strong></div>
       </div>
-      <p class="receipt-payment-note">${order.payment_status === "paid" ? "Payment received at store." : "Payment pending at store counter."}</p>
+      <p class="receipt-payment-note">${order.payment_status === "paid" ? "Payment received at store." : "Payment pending at the counter."}</p>
     </section>
   `;
 }
 
+function printBill(order) {
+  const printWindow = window.open("", "order-bill");
+  if (!printWindow) return;
+  printWindow.document.write(`
+    <!doctype html>
+    <html>
+      <head>
+        <title>Bill ${escapeHtml(order.order_number)}</title>
+        <style>
+          * { box-sizing: border-box; }
+          body { margin: 0; background: #f6f8f7; color: #1d2328; font-family: Arial, Helvetica, sans-serif; padding: 24px; }
+          .receipt-card { max-width: 520px; margin: 0 auto; display: grid; gap: 14px; border: 1px solid #dce4e8; border-radius: 8px; background: #fff; padding: 18px; }
+          .receipt-header { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px dashed #cbd7dc; padding-bottom: 12px; }
+          .eyebrow { margin: 0 0 4px; color: #1f7a5c; font-size: 11px; font-weight: 900; letter-spacing: 0; text-transform: uppercase; }
+          h2 { margin: 0 0 4px; font-size: 22px; }
+          .receipt-header span, .receipt-header small { display: block; color: #65717b; font-weight: 800; }
+          .receipt-header > strong { align-self: start; border-radius: 999px; background: #edf6f2; color: #1f7a5c; padding: 7px 10px; white-space: nowrap; }
+          .order-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+          .order-detail-grid p { min-height: 64px; display: grid; gap: 5px; margin: 0; border: 1px solid #dce4e8; border-radius: 8px; background: #f9fbfa; padding: 10px; }
+          .order-detail-grid strong { color: #1d2328; }
+          .order-detail-grid span { color: #65717b; text-transform: capitalize; overflow-wrap: anywhere; }
+          .receipt-items { display: grid; gap: 9px; }
+          .receipt-item, .receipt-lines div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed #e3ebee; padding-bottom: 8px; }
+          .receipt-item:last-child { border-bottom: 0; padding-bottom: 0; }
+          .receipt-item small { color: #65717b; font-weight: 800; }
+          .receipt-lines { display: grid; gap: 8px; border-top: 1px dashed #cbd7dc; padding-top: 10px; }
+          .receipt-grand-total { border-top: 1px solid #dce4e8; margin-top: 4px; padding-top: 8px; font-size: 18px; font-weight: 900; }
+          .receipt-payment-note { margin: 0; color: #65717b; }
+          @media print { body { background: #fff; padding: 0; } .receipt-card { border: 0; max-width: none; } }
+        </style>
+      </head>
+      <body>${receiptHtml(order, { title: "Bill", showCustomer: true })}</body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  window.setTimeout(() => printWindow.print(), 350);
+}
+
 function orderDetailsHtml(order) {
-  return receiptHtml(order);
+  return receiptHtml(order, { title: "Bill", showCustomer: true });
 }
 
 function estimatedWaitLabel(order) {
@@ -725,9 +829,15 @@ function estimatedWaitLabel(order) {
   return "Estimated wait: 12-18 minutes";
 }
 
+function customerStatusLabel(status) {
+  return String(status || "pending")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function whatsappConfirmationUrl(order) {
   const token = order.token_number ? `Token ${order.token_number}` : "Payment pending";
-  const table = order.table_label ? `Table: ${order.table_label}` : "Table: Takeaway";
+  const table = order.table_label ? `Table: ${order.table_label}` : "Order type: Takeaway";
   const items = order.items.map((item) => `${item.item_name} x ${item.quantity}`).join(", ");
   const message = [
     `${cafeName} order confirmation`,
@@ -750,34 +860,64 @@ function initOrderStatus() {
   const details = document.getElementById("orderStatusDetails");
   const estimatedWait = document.getElementById("estimatedWait");
   const whatsAppLink = document.getElementById("whatsAppConfirmLink");
+  const printBillButton = document.getElementById("printBillButton");
   const paymentNotice = document.getElementById("paymentNotice");
+  const pollDelay = 2500;
+  let isRefreshing = false;
+  let currentOrder = null;
 
   function render(order) {
+    if (!order || String(order.id) !== String(orderId)) return;
+    currentOrder = order;
     tokenNumber.textContent = order.token_number ? `Token ${order.token_number}` : "Payment pending";
-    tokenStatus.textContent = order.status.replaceAll("_", " ");
+    tokenStatus.textContent = customerStatusLabel(order.status);
     tokenStatus.className = `status-pill status-${order.status}`;
     estimatedWait.textContent = estimatedWaitLabel(order);
     if (paymentNotice) {
       paymentNotice.textContent = order.payment_status === "paid"
         ? "Payment received at store. Thank you."
-        : "Payment at store. Please pay directly at the counter when collecting your order.";
+        : "Pay at store. Please pay directly at the counter when collecting your order.";
     }
     whatsAppLink.href = whatsappConfirmationUrl(order);
     details.innerHTML = orderDetailsHtml(order);
   }
 
+  printBillButton?.addEventListener("click", () => {
+    if (currentOrder) printBill(currentOrder);
+  });
+
   async function refresh() {
-    const order = await apiFetch(`/api/v1/orders/${orderId}`);
-    render(order);
+    if (isRefreshing) return;
+    isRefreshing = true;
+    try {
+      const order = await apiFetch(`/api/v1/orders/${orderId}`);
+      render(order);
+    } finally {
+      isRefreshing = false;
+    }
   }
 
   const socket = connectSocket();
   if (socket) {
-    socket.emit("customer_join", { order_id: orderId });
+    socket.on("connect", () => {
+      socket.emit("customer_join", { order_id: orderId });
+      refresh().catch(() => {});
+    });
+    socket.io?.on("reconnect", () => {
+      socket.emit("customer_join", { order_id: orderId });
+      refresh().catch(() => {});
+    });
     socket.on("order_updated", render);
-  } else {
-    setInterval(refresh, 5000);
   }
+
+  setInterval(() => {
+    if (!document.hidden) refresh().catch(() => {});
+  }, pollDelay);
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refresh().catch(() => {});
+  });
+
   refresh().catch(() => {});
 }
 
@@ -794,6 +934,7 @@ function initAdminDashboard() {
   const orderDialog = document.getElementById("orderDetailDialog");
   const orderDetailTitle = document.getElementById("orderDetailTitle");
   const orderDetailBody = document.getElementById("orderDetailBody");
+  const printOrderBillButton = document.getElementById("printOrderBillButton");
   const externalOrderForm = document.getElementById("externalOrderForm");
   const externalOrdersBoard = document.getElementById("externalOrdersBoard");
   const externalOrdersMetric = document.getElementById("externalOrdersMetric");
@@ -808,45 +949,100 @@ function initAdminDashboard() {
   let alertsEnabled = localStorage.getItem("qrCafeAdminAlerts") === "on";
   let alertAudioContext = null;
   let alertToneTimer = null;
+  let audioUnlocked = false;
+  let hasLoadedDashboard = false;
+  let knownOrderIds = new Set();
+  let knownExternalOrderIds = new Set();
+  let selectedOrder = null;
+
+  function supportsAlertAudio() {
+    return Boolean(window.AudioContext || window.webkitAudioContext);
+  }
 
   function renderAlertState() {
     if (!alertsButton || !alertsStatus) return;
-    alertsButton.textContent = alertsEnabled ? "Sound on" : "Enable sound";
-    alertsButton.classList.toggle("primary", alertsEnabled);
-    alertsStatus.textContent = alertsEnabled
+    if (!alertsEnabled) {
+      alertsButton.textContent = "Enable sound";
+      alertsButton.classList.remove("primary");
+      alertsStatus.textContent = "Sound alerts are off";
+      return;
+    }
+    if (!supportsAlertAudio()) {
+      alertsButton.textContent = "Sound unavailable";
+      alertsButton.classList.remove("primary");
+      alertsStatus.textContent = "This browser cannot play dashboard sounds";
+      return;
+    }
+    alertsButton.textContent = audioUnlocked ? "Sound on" : "Arm sound";
+    alertsButton.classList.toggle("primary", audioUnlocked);
+    alertsStatus.textContent = audioUnlocked
       ? "Sound and desktop alerts are on"
-      : "Sound alerts are off";
+      : "Tap Arm sound once to allow browser audio";
   }
 
   function ensureAlertAudio() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return null;
-    if (!alertAudioContext) {
-      alertAudioContext = new AudioContext();
+    if (!alertAudioContext || alertAudioContext.state === "closed") {
+      try {
+        alertAudioContext = new AudioContext();
+      } catch (error) {
+        return null;
+      }
     }
-    if (alertAudioContext.state === "suspended") {
-      alertAudioContext.resume().catch(() => {});
-    }
+    audioUnlocked = alertAudioContext.state === "running";
     return alertAudioContext;
   }
 
-  function playKitchenTone() {
-    if (!alertsEnabled) return;
+  async function unlockAlertAudio() {
     const audio = ensureAlertAudio();
-    if (!audio) return;
+    if (!audio) {
+      audioUnlocked = false;
+      renderAlertState();
+      return false;
+    }
+    try {
+      if (audio.state === "suspended") {
+        await audio.resume();
+      }
+    } catch (error) {
+      audioUnlocked = false;
+      renderAlertState();
+      return false;
+    }
+    audioUnlocked = audio.state === "running";
+    renderAlertState();
+    return audioUnlocked;
+  }
+
+  function playKitchenTone() {
+    if (!alertsEnabled) return false;
+    const audio = ensureAlertAudio();
+    if (!audio || audio.state !== "running") {
+      audioUnlocked = false;
+      renderAlertState();
+      return false;
+    }
+    audioUnlocked = true;
     const start = audio.currentTime + 0.02;
-    [784, 988, 1175].forEach((frequency, index) => {
-      const oscillator = audio.createOscillator();
-      const gain = audio.createGain();
-      oscillator.type = "sine";
-      oscillator.frequency.value = frequency;
-      gain.gain.setValueAtTime(0.0001, start + index * 0.16);
-      gain.gain.exponentialRampToValueAtTime(0.28, start + index * 0.16 + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + index * 0.16 + 0.14);
-      oscillator.connect(gain).connect(audio.destination);
-      oscillator.start(start + index * 0.16);
-      oscillator.stop(start + index * 0.16 + 0.16);
-    });
+    try {
+      [784, 988, 1175].forEach((frequency, index) => {
+        const oscillator = audio.createOscillator();
+        const gain = audio.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.0001, start + index * 0.16);
+        gain.gain.exponentialRampToValueAtTime(0.28, start + index * 0.16 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + index * 0.16 + 0.14);
+        oscillator.connect(gain).connect(audio.destination);
+        oscillator.start(start + index * 0.16);
+        oscillator.stop(start + index * 0.16 + 0.16);
+      });
+      renderAlertState();
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   function stopKitchenToneLoop() {
@@ -885,7 +1081,7 @@ function initAdminDashboard() {
     if (!alertsEnabled || !("Notification" in window) || Notification.permission !== "granted") return;
     const itemCount = (order.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
     new Notification(`New order ${order.order_number}`, {
-      body: `${order.table_label || "No table"} - ${itemCount} item${itemCount === 1 ? "" : "s"} - ${money(order.total_amount)}`,
+      body: `${order.table_label || "Takeaway"} - ${itemCount} item${itemCount === 1 ? "" : "s"} - ${money(order.total_amount)}`,
       icon: "/static/brand/tea_trust_logo.png",
     });
   }
@@ -898,15 +1094,36 @@ function initAdminDashboard() {
     });
   }
 
+  function alertForNewOrder(order) {
+    knownOrderIds.add(Number(order.id));
+    playRepeatingKitchenTone(5000);
+    announceNewOrder();
+    showOrderNotification(order);
+  }
+
+  function alertForNewExternalOrder(order) {
+    knownExternalOrderIds.add(String(order.id));
+    playRepeatingKitchenTone(5000);
+    announceNewOrder("New delivery order");
+    showExternalOrderNotification(order);
+  }
+
   async function enableAlerts() {
     alertsEnabled = true;
     localStorage.setItem("qrCafeAdminAlerts", "on");
-    ensureAlertAudio();
+    const unlocked = await unlockAlertAudio();
     if ("Notification" in window && Notification.permission === "default") {
       await Notification.requestPermission().catch(() => {});
     }
     renderAlertState();
-    playKitchenTone();
+    if (unlocked) {
+      playKitchenTone();
+    }
+  }
+
+  function armAlertsFromGesture() {
+    if (!alertsEnabled || audioUnlocked) return;
+    unlockAlertAudio().catch(() => {});
   }
 
   function dashboardMoney(value) {
@@ -1033,7 +1250,7 @@ function initAdminDashboard() {
 
   function renderOrderDetail(order) {
     const statusActions = quickStatusButtons(order);
-    orderDetailTitle.textContent = `${order.order_number} - ${order.table_label || "No table"}`;
+    orderDetailTitle.textContent = `${order.order_number} - ${order.table_label || "Takeaway"}`;
     orderDetailBody.innerHTML = `
       ${receiptHtml(order, { showCustomer: true })}
       <section class="order-notes-section">
@@ -1053,12 +1270,17 @@ function initAdminDashboard() {
   function openOrderDetail(orderId) {
     const order = orders.find((candidate) => String(candidate.id) === String(orderId));
     if (!order || !orderDialog) return;
+    selectedOrder = order;
     seenOrderIds.add(Number(order.id));
     saveSeenOrders();
     render();
     renderOrderDetail(order);
     orderDialog.showModal();
   }
+
+  printOrderBillButton?.addEventListener("click", () => {
+    if (selectedOrder) printBill(selectedOrder);
+  });
 
   function timeAgo(value) {
     const created = new Date(value);
@@ -1225,7 +1447,7 @@ function initAdminDashboard() {
         return `
           <tr class="${isUnseen(order) ? "is-unseen" : ""}">
             <td><strong>${escapeHtml(order.order_number)}</strong></td>
-            <td>${escapeHtml(order.table_label || "No table")}</td>
+            <td>${escapeHtml(order.table_label || "Takeaway")}</td>
             <td>${itemsCount} item${itemsCount === 1 ? "" : "s"}</td>
             <td>${dashboardMoney(order.total_amount)}</td>
             <td>${statusSelectHtml(order)}</td>
@@ -1249,7 +1471,7 @@ function initAdminDashboard() {
           <header>
             <div>
               <strong>${escapeHtml(order.order_number)}</strong>
-              <p class="helper-text">${escapeHtml(order.table_label || "No table")} - ${money(order.total_amount)}</p>
+              <p class="helper-text">${escapeHtml(order.table_label || "Takeaway")} - ${money(order.total_amount)}</p>
             </div>
             <span class="status-pill status-${order.status}">${escapeHtml(order.status.replaceAll("_", " "))}</span>
           </header>
@@ -1271,6 +1493,25 @@ function initAdminDashboard() {
     renderExternalOrders();
   }
 
+  function trackNewOrderAlerts(orderPayload, externalOrderPayload) {
+    const activeStatuses = new Set(["payment_pending", "pending", "preparing", "ready"]);
+    const newOrders = orderPayload.filter((order) => (
+      activeStatuses.has(order.status) && !knownOrderIds.has(Number(order.id))
+    ));
+    const newExternalOrders = externalOrderPayload.filter((order) => (
+      activeStatuses.has(order.status) && !knownExternalOrderIds.has(String(order.id))
+    ));
+
+    if (hasLoadedDashboard) {
+      newOrders.forEach(alertForNewOrder);
+      newExternalOrders.forEach(alertForNewExternalOrder);
+    }
+
+    knownOrderIds = new Set(orderPayload.map((order) => Number(order.id)));
+    knownExternalOrderIds = new Set(externalOrderPayload.map((order) => String(order.id)));
+    hasLoadedDashboard = true;
+  }
+
   async function load() {
     if (isLoading) return;
     isLoading = true;
@@ -1285,6 +1526,7 @@ function initAdminDashboard() {
         return;
       }
       dashboardDataSignature = nextSignature;
+      trackNewOrderAlerts(orderPayload, externalOrderPayload);
       orders = orderPayload;
       tables = tablePayload;
       externalOrders = externalOrderPayload;
@@ -1357,21 +1599,25 @@ function initAdminDashboard() {
   filter?.addEventListener("change", render);
   salesRange?.addEventListener("change", renderSalesChart);
   alertsButton?.addEventListener("click", enableAlerts);
+  document.addEventListener("pointerdown", armAlertsFromGesture, { capture: true });
+  document.addEventListener("keydown", armAlertsFromGesture, { capture: true });
   renderAlertState();
   const socket = connectSocket();
   if (socket) {
-    socket.emit("admin_join");
+    socket.on("connect", () => {
+      socket.emit("admin_join");
+    });
+    if (socket.connected) {
+      socket.emit("admin_join");
+    }
     socket.on("order_created", (order) => {
-      playRepeatingKitchenTone(5000);
-      announceNewOrder();
-      showOrderNotification(order);
+      alertForNewOrder(order);
+      dashboardDataSignature = "";
       load();
     });
     socket.on("order_updated", load);
     socket.on("external_order_created", (order) => {
-      playRepeatingKitchenTone(5000);
-      announceNewOrder("New delivery order");
-      showExternalOrderNotification(order);
+      alertForNewExternalOrder(order);
       dashboardDataSignature = "";
       load();
     });
@@ -1405,7 +1651,7 @@ function kitchenOrderCard(order) {
     <article class="kitchen-card">
       <header>
         <span>${order.token_number ? `#${String(order.token_number).padStart(3, "0")}` : "Pay"}</span>
-        <strong>${escapeHtml(order.table_label || "No table")}</strong>
+        <strong>${escapeHtml(order.table_label || "Takeaway")}</strong>
       </header>
       <p>${escapeHtml(order.order_number)} - ${money(order.total_amount)}</p>
       <ul>${items}</ul>

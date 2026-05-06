@@ -27,7 +27,7 @@ def _positive_int_from_env(name, default):
 
 class BaseConfig:
     PROJECT_NAME = os.getenv("PROJECT_NAME", "Tea Trust Cafe")
-    CAFE_NAME = os.getenv("CAFE_NAME", "TEA Trust Cafe")
+    CAFE_NAME = os.getenv("CAFE_NAME", "Tea Trust Cafe")
     CAFE_TAGLINE = os.getenv("CAFE_TAGLINE", "Chai & Eatery")
     CAFE_SUBTITLE = os.getenv("CAFE_SUBTITLE", "An Authentic Tea Experience")
     CAFE_PHONE = os.getenv("CAFE_PHONE", "97275 20006")
