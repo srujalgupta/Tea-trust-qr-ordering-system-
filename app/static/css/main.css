@@ -213,6 +213,10 @@ label {
   animation: panel-rise 0.42s var(--ease-out) both;
 }
 
+body[data-page="customer-menu"] .topbar {
+  position: static;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -693,9 +697,8 @@ p {
 }
 
 .menu-tools {
-  position: sticky;
-  top: 74px;
-  z-index: 20;
+  position: static;
+  z-index: 5;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   gap: 14px;
@@ -728,9 +731,8 @@ p {
 }
 
 .category-tabs {
-  position: sticky;
-  top: 166px;
-  z-index: 18;
+  position: static;
+  z-index: 4;
   display: flex;
   gap: 8px;
   overflow-x: auto;
@@ -2968,7 +2970,6 @@ p {
   }
 
   .menu-tools {
-    top: 88px;
     grid-template-columns: 1fr;
   }
 
@@ -3100,7 +3101,6 @@ p {
   }
 
   .category-tabs {
-    top: 184px;
     margin-left: -12px;
     margin-right: -12px;
     padding-left: 12px;
