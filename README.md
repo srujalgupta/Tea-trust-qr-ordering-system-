@@ -131,7 +131,7 @@ SOCKETIO_ASYNC_MODE=eventlet
 Render and Railway can use:
 
 ```text
-gunicorn --worker-class eventlet -w 1 wsgi:app
+flask --app run.py init-db && flask --app run.py seed-data && gunicorn --bind 0.0.0.0:$PORT --worker-class eventlet -w 1 wsgi:app
 ```
 
 Use one worker for Flask-SocketIO unless you add a supported message queue such as Redis.
