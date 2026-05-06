@@ -10,7 +10,12 @@ def ensure_runtime_schema(app):
 
     with app.app_context():
         inspector = inspect(db.engine)
-        if "users" not in inspector.get_table_names():
+        tables = inspector.get_table_names()
+        if "customer_contacts" not in tables:
+            db.create_all()
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+        if "users" not in tables:
             return
 
         columns = {column["name"] for column in inspector.get_columns("users")}

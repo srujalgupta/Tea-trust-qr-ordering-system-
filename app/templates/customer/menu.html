@@ -7,7 +7,7 @@
   <section
     class="menu-hero"
     data-table-id="{{ table.id if table else '' }}"
-    {% if banner_poster_url %}style="--poster: url('{{ banner_poster_url }}')"{% endif %}
+    data-poster-url="{{ banner_poster_url or '' }}"
   >
     {% if banner_video_url %}
       <video class="menu-video" autoplay muted loop playsinline poster="{{ banner_poster_url }}">

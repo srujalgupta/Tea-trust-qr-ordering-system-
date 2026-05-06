@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -25,6 +26,13 @@ def _positive_int_from_env(name, default):
     return max(1, value)
 
 
+def _bool_from_env(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 class BaseConfig:
     PROJECT_NAME = os.getenv("PROJECT_NAME", "Tea Trust Cafe")
     CAFE_NAME = os.getenv("CAFE_NAME", "Tea Trust Cafe")
@@ -39,13 +47,39 @@ class BaseConfig:
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
     SOCKETIO_ASYNC_MODE = os.getenv("SOCKETIO_ASYNC_MODE", "threading")
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+    TRUST_PROXY_HEADERS = _bool_from_env("TRUST_PROXY_HEADERS", False)
+    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "qr_cafe_session")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_REFRESH_EACH_REQUEST = False
+    PERMANENT_SESSION_LIFETIME = timedelta(
+        minutes=_positive_int_from_env("SESSION_TIMEOUT_MINUTES", 60)
+    )
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = "Lax"
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", 5 * 1024 * 1024))
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "app/static/uploads")
     ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
     RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "120"))
     RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
+    AUTH_LOGIN_RATE_LIMIT_REQUESTS = _positive_int_from_env(
+        "AUTH_LOGIN_RATE_LIMIT_REQUESTS",
+        8,
+    )
+    AUTH_LOGIN_RATE_LIMIT_WINDOW_SECONDS = _positive_int_from_env(
+        "AUTH_LOGIN_RATE_LIMIT_WINDOW_SECONDS",
+        15 * 60,
+    )
+    ORDER_CREATE_RATE_LIMIT_REQUESTS = _positive_int_from_env(
+        "ORDER_CREATE_RATE_LIMIT_REQUESTS",
+        20,
+    )
+    ORDER_CREATE_RATE_LIMIT_WINDOW_SECONDS = _positive_int_from_env(
+        "ORDER_CREATE_RATE_LIMIT_WINDOW_SECONDS",
+        10 * 60,
+    )
+    PASSWORD_MIN_LENGTH = _positive_int_from_env("PASSWORD_MIN_LENGTH", 12)
+    SECURITY_CSP_ENABLED = _bool_from_env("SECURITY_CSP_ENABLED", True)
     PAYMENT_CURRENCY = os.getenv("PAYMENT_CURRENCY", "INR")
     CAFE_BANNER_VIDEO_URL = os.getenv("CAFE_BANNER_VIDEO_URL", "")
     CAFE_BANNER_POSTER_URL = os.getenv(
@@ -76,7 +110,9 @@ class ProductionConfig(BaseConfig):
     ENV_NAME = "production"
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = BaseConfig.DATABASE_URL
+    TRUST_PROXY_HEADERS = _bool_from_env("TRUST_PROXY_HEADERS", True)
     SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SECURE = True
 
 
 CONFIG_BY_NAME = {

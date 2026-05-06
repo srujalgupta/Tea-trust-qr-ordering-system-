@@ -1,5 +1,6 @@
 import uuid
 from decimal import Decimal
+from hmac import compare_digest
 
 from sqlalchemy.orm import selectinload
 
@@ -7,6 +8,7 @@ from app.extensions import db
 from app.models import CafeTable, MenuItem, Order, OrderItem
 from app.models.constants import ORDER_STATUSES, TOKEN_STATUSES
 from .errors import NotFoundError, ValidationError
+from .customer_service import normalize_phone, upsert_customer_contact
 from .notification_service import send_order_confirmation, send_order_ready
 from .payment_service import create_cash_payment
 from .pos_service import send_order_to_pos
@@ -82,6 +84,10 @@ def create_order(data, config):
     payment_method = (data.get("payment_method") or "cash").strip().lower()
     if payment_method != "cash":
         raise ValidationError("Only pay-at-counter orders are supported.")
+    marketing_opt_in = bool(data.get("marketing_opt_in"))
+    customer_phone = normalize_phone(data.get("customer_phone"))
+    if marketing_opt_in and not customer_phone:
+        raise ValidationError("Phone number is required for updates and offers.")
 
     subtotal = Decimal("0.00")
     order_notes = (data.get("notes") or "").strip()[:1000]
@@ -98,7 +104,7 @@ def create_order(data, config):
         order_number=_order_number(),
         table=table,
         customer_name=(data.get("customer_name") or "").strip()[:120],
-        customer_phone=(data.get("customer_phone") or "").strip()[:30],
+        customer_phone=customer_phone[:30],
         notes=order_notes,
         currency=config["PAYMENT_CURRENCY"],
         payment_method=payment_method,
@@ -129,6 +135,7 @@ def create_order(data, config):
 
     create_cash_payment(order)
     generate_daily_token_for_order(order)
+    upsert_customer_contact(order, marketing_opt_in=marketing_opt_in)
 
     db.session.commit()
 
@@ -149,6 +156,14 @@ def get_order(order_id):
         .first()
     )
     if not order:
+        raise NotFoundError("Order not found.")
+    return order
+
+
+def verify_customer_order_access(order, lookup_key):
+    expected = order.order_number or ""
+    provided = (lookup_key or "").strip()
+    if not provided or not compare_digest(expected, provided):
         raise NotFoundError("Order not found.")
     return order
 

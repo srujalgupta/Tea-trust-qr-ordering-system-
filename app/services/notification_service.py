@@ -45,3 +45,19 @@ def send_order_ready(order_data, webhook_url=None):
         },
         webhook_url,
     )
+
+
+def send_broadcast_message(contact, message, webhook_url=None):
+    return _send(
+        {
+            "channel": "whatsapp_simulation",
+            "event": "broadcast",
+            "phone": contact.phone,
+            "message": message,
+            "customer": {
+                "id": contact.id,
+                "name": contact.name or "",
+            },
+        },
+        webhook_url,
+    )

@@ -1,8 +1,13 @@
+import re
+
 from app.extensions import db
 from app.models import User
 from app.models.constants import STAFF_ROLE_LABELS
-from .auth_service import validate_staff_role
+from .auth_service import validate_password_strength, validate_staff_role
 from .errors import NotFoundError, ValidationError
+
+
+USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+$")
 
 
 def _clean_optional_email(value):
@@ -14,16 +19,15 @@ def _clean_username(value):
     value = (value or "").strip()
     if len(value) < 3:
         raise ValidationError("Username must be at least 3 characters.")
+    if len(value) > 80:
+        raise ValidationError("Username must be 80 characters or fewer.")
+    if not USERNAME_PATTERN.match(value):
+        raise ValidationError("Username can only use letters, numbers, dots, dashes, and underscores.")
     return value
 
 
-def _validate_password(password, required=True):
-    password = password or ""
-    if required and not password:
-        raise ValidationError("Password is required.")
-    if password and len(password) < 10:
-        raise ValidationError("Password must be at least 10 characters.")
-    return password
+def _validate_password(password, username=None, required=True):
+    return validate_password_strength(password, username=username, required=required)
 
 
 def _ensure_username_available(username, user_id=None):
@@ -82,7 +86,7 @@ def create_staff_profile(data):
     username = _clean_username(data.get("username"))
     email = _clean_optional_email(data.get("email"))
     role = validate_staff_role(data.get("role"))
-    password = _validate_password(data.get("password"), required=True)
+    password = _validate_password(data.get("password"), username=username, required=True)
 
     _ensure_username_available(username)
     _ensure_email_available(email)
@@ -117,7 +121,9 @@ def update_staff_profile(user_id, data, actor=None):
     if "active" in data:
         user.active = next_active
     if data.get("password"):
-        user.set_password(_validate_password(data.get("password"), required=False))
+        user.set_password(
+            _validate_password(data.get("password"), username=user.username, required=False)
+        )
 
     db.session.commit()
     return user

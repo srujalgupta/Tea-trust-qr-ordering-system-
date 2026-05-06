@@ -60,15 +60,19 @@ def main():
         json={
             "payment_method": "cash",
             "customer_name": "Smoke Test",
+            "customer_phone": "98765 43210",
+            "marketing_opt_in": True,
             "items": [{"menu_item_id": first_item["id"], "quantity": 1}],
         },
         headers={"X-CSRFToken": token},
     )
     assert order.status_code == 201, order.get_data(as_text=True)
     order_id = order.json["id"]
+    order_key = order.json["order_number"]
     assert order.json["token_number"] == 1
     assert order.json["payment_method"] == "cash"
     assert order.json["payment_status"] == "cash_pending"
+    assert order.json["customer_phone"] == "9876543210"
 
     non_counter_order = client.post(
         "/api/v1/orders",
@@ -82,9 +86,12 @@ def main():
     assert non_counter_order.status_code == 400
     assert "Only pay-at-counter orders are supported" in non_counter_order.get_data(as_text=True)
 
-    status = client.get(f"/api/v1/orders/{order_id}")
+    status = client.get(f"/api/v1/orders/{order_id}?key={order_key}")
     assert status.status_code == 200
     assert status.json["status"] == "pending"
+
+    missing_order_key = client.get(f"/api/v1/orders/{order_id}")
+    assert missing_order_key.status_code == 404
 
     login = client.post(
         "/admin/login?next=https://example.com/phishing",
@@ -96,6 +103,25 @@ def main():
     )
     assert login.status_code in {200, 302}
     assert "example.com" not in (login.headers.get("Location") or "")
+
+    admin_home = client.get("/admin/dashboard")
+    assert admin_home.status_code == 200
+    token = csrf_from(admin_home.get_data(as_text=True))
+
+    customers = client.get("/api/v1/admin/customers?marketing_only=1")
+    assert customers.status_code == 200
+    assert customers.json[0]["name"] == "Smoke Test"
+    assert customers.json[0]["phone"] == "9876543210"
+    assert customers.json[0]["marketing_opt_in"] is True
+
+    broadcast = client.post(
+        "/api/v1/admin/broadcasts",
+        json={"message": "Today special chai offer is live."},
+        headers={"X-CSRFToken": token},
+    )
+    assert broadcast.status_code == 200, broadcast.get_data(as_text=True)
+    assert broadcast.json["sent"] == 1
+    assert broadcast.json["recipient_count"] == 1
 
     bad_category = client.post(
         "/api/v1/admin/categories",
@@ -136,7 +162,7 @@ def main():
         "/api/v1/admin/staff",
         json={
             "username": "kitchen",
-            "password": "kitchen12345",
+            "password": "StaffTea2026!",
             "role": "kitchen",
         },
         headers={"X-CSRFToken": token},
@@ -147,11 +173,15 @@ def main():
     logout = client.post("/admin/logout", data={"csrf_token": token})
     assert logout.status_code in {200, 302}
 
+    login_page = client.get("/admin/login")
+    assert login_page.status_code == 200
+    token = csrf_from(login_page.get_data(as_text=True))
+
     kitchen_login = client.post(
         "/admin/login",
         data={
             "username": "kitchen",
-            "password": "kitchen12345",
+            "password": "StaffTea2026!",
             "csrf_token": token,
         },
     )
@@ -159,6 +189,7 @@ def main():
 
     kitchen_page = client.get("/admin/kitchen")
     assert kitchen_page.status_code == 200
+    token = csrf_from(kitchen_page.get_data(as_text=True))
 
     menu_denied = client.get("/admin/menu")
     assert menu_denied.status_code == 403

@@ -3,6 +3,7 @@ from datetime import datetime
 
 from flask import Flask, jsonify, render_template, request
 from sqlalchemy.exc import IntegrityError
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.exceptions import HTTPException
 
 from config import INSTANCE_DIR, get_config
@@ -16,6 +17,7 @@ def create_app(config_name=None):
 
     INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
 
+    _configure_proxy_headers(app)
     _configure_logging(app)
     _validate_config(app)
 
@@ -58,6 +60,18 @@ def _configure_logging(app):
     app.logger.setLevel(level)
 
 
+def _configure_proxy_headers(app):
+    if app.config.get("TRUST_PROXY_HEADERS"):
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app,
+            x_for=1,
+            x_proto=1,
+            x_host=1,
+            x_port=1,
+            x_prefix=1,
+        )
+
+
 def _configure_login_manager():
     login_manager.session_protection = "strong"
     login_manager.login_view = "admin.login"
@@ -85,12 +99,13 @@ def _validate_config(app):
         missing.append("SECRET_KEY (32+ characters)")
     if not app.config.get("SQLALCHEMY_DATABASE_URI"):
         missing.append("DATABASE_URL")
+    password_min_length = app.config.get("PASSWORD_MIN_LENGTH", 12)
     if (
         not app.config["ADMIN_PASSWORD"]
         or app.config["ADMIN_PASSWORD"] == "admin12345"
-        or len(app.config["ADMIN_PASSWORD"]) < 10
+        or len(app.config["ADMIN_PASSWORD"]) < password_min_length
     ):
-        missing.append("ADMIN_PASSWORD (10+ characters, not default)")
+        missing.append(f"ADMIN_PASSWORD ({password_min_length}+ characters, not default)")
 
     if missing:
         raise RuntimeError(

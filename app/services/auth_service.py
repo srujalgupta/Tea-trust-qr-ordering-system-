@@ -1,12 +1,44 @@
 from functools import wraps
 
-from flask import redirect, request, url_for
+from flask import current_app, has_app_context, redirect, request, url_for
 from flask_login import current_user
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
 from app.models import User
 from app.models.constants import STAFF_ROLES
 from .errors import ForbiddenError, ValidationError
+
+
+COMMON_WEAK_PASSWORDS = {
+    "admin",
+    "admin123",
+    "admin12345",
+    "password",
+    "password123",
+    "qwerty123",
+    "letmein123",
+    "1234567890",
+    "123456789",
+}
+
+_DUMMY_PASSWORD_HASH = generate_password_hash("invalid-login-password")
+
+
+def _password_min_length():
+    if has_app_context():
+        return current_app.config.get("PASSWORD_MIN_LENGTH", 12)
+    return 12
+
+
+def _allows_dev_seed_password(username, password):
+    if not has_app_context():
+        return False
+    return (
+        current_app.config.get("ENV_NAME") != "production"
+        and username == current_app.config.get("ADMIN_USERNAME")
+        and password == "admin12345"
+    )
 
 
 def admin_required(view):
@@ -44,6 +76,33 @@ def validate_staff_role(role):
     return role
 
 
+def validate_password_strength(password, username=None, required=True):
+    password = password or ""
+    if required and not password:
+        raise ValidationError("Password is required.")
+    if not password:
+        return password
+    if password != password.strip():
+        raise ValidationError("Password cannot start or end with spaces.")
+
+    min_length = _password_min_length()
+    if len(password) < min_length:
+        raise ValidationError(f"Password must be at least {min_length} characters.")
+
+    normalized = password.lower()
+    normalized_username = (username or "").strip().lower()
+    if normalized in COMMON_WEAK_PASSWORDS:
+        raise ValidationError("Choose a less common password.")
+    if normalized_username and normalized in {
+        normalized_username,
+        f"{normalized_username}123",
+        f"{normalized_username}12345",
+        f"{normalized_username}@123",
+    }:
+        raise ValidationError("Password cannot be based on the username.")
+    return password
+
+
 def owner_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
@@ -64,7 +123,10 @@ def authenticate_user(username, password):
         raise ValidationError("Username and password are required.")
 
     user = User.query.filter_by(username=username).first()
-    if not user or not user.check_password(password):
+    if not user:
+        check_password_hash(_DUMMY_PASSWORD_HASH, password or "")
+        raise ValidationError("Invalid username or password.")
+    if not user.check_password(password):
         raise ValidationError("Invalid username or password.")
     if not user.is_active:
         raise ForbiddenError("This account is disabled.")
@@ -78,6 +140,9 @@ def ensure_admin_user(username, password, email=None):
             user.role = "owner"
             db.session.commit()
         return user, False
+
+    if not _allows_dev_seed_password(username, password):
+        validate_password_strength(password, username=username)
 
     user = User(username=username, email=email, is_admin=True, role="owner", active=True)
     user.set_password(password)

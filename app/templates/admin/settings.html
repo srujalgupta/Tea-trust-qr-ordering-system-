@@ -22,11 +22,11 @@
       </label>
       <label>
         New password
-        <input name="new_password" type="password" autocomplete="new-password" minlength="10" required>
+        <input name="new_password" type="password" autocomplete="new-password" minlength="{{ password_min_length }}" required>
       </label>
       <label>
         Confirm new password
-        <input name="confirm_password" type="password" autocomplete="new-password" minlength="10" required>
+        <input name="confirm_password" type="password" autocomplete="new-password" minlength="{{ password_min_length }}" required>
       </label>
       <button class="button primary" type="submit">Update password</button>
     </form>
@@ -52,6 +52,7 @@
       <div class="export-actions">
         <a class="button" href="{{ url_for('api.admin_orders_export') }}">Download orders CSV</a>
         <a class="button" href="{{ url_for('api.admin_menu_export') }}">Download menu CSV</a>
+        <a class="button" href="{{ url_for('api.admin_customers_export', marketing_only=1) }}">Download broadcast contacts</a>
       </div>
     </article>
 
@@ -70,6 +71,24 @@
   </section>
 
   {% if current_user.can('staff:manage') %}
+    <section class="dashboard-card broadcast-panel">
+      <header class="panel-header">
+        <h2>Customer Broadcast</h2>
+        <span id="broadcastContactSummary" class="panel-link">Loading</span>
+      </header>
+
+      <form id="broadcastForm" class="broadcast-form">
+        <label>
+          Message
+          <textarea id="broadcastMessage" name="message" maxlength="500" required></textarea>
+        </label>
+        <div class="broadcast-actions">
+          <button id="broadcastSendButton" class="button primary" type="submit">Send broadcast</button>
+          <span id="broadcastStatus" class="helper-text" role="status"></span>
+        </div>
+      </form>
+    </section>
+
     <section class="dashboard-card staff-profiles-panel">
       <header class="panel-header">
         <h2>Staff Profiles</h2>
@@ -80,7 +99,7 @@
         <input name="username" placeholder="Username" autocomplete="off" required>
         <input name="email" type="email" placeholder="Email">
         <select id="staffRoleSelect" name="role" aria-label="Profile role" required></select>
-        <input name="password" type="password" placeholder="Temporary password" autocomplete="new-password" minlength="10" required>
+        <input name="password" type="password" placeholder="Temporary password" autocomplete="new-password" minlength="{{ password_min_length }}" required>
         <button class="button primary" type="submit">Add profile</button>
       </form>
 

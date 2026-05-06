@@ -7,7 +7,9 @@ from flask import Blueprint, Response, current_app, jsonify, request
 from flask_login import current_user
 
 from app.services.auth_service import require_admin_api
+from app.services.broadcast_service import send_customer_broadcast
 from app.services.errors import ValidationError
+from app.services.customer_service import list_customer_contacts
 from app.services.health_service import build_health_payload
 from app.services.menu_service import (
     create_category,
@@ -19,9 +21,16 @@ from app.services.menu_service import (
     update_category,
     update_menu_item,
 )
-from app.services.order_service import create_order, get_order, list_orders, update_order_status
+from app.services.order_service import (
+    create_order,
+    get_order,
+    list_orders,
+    update_order_status,
+    verify_customer_order_access,
+)
 from app.services.serializers import (
     serialize_category,
+    serialize_customer_contact,
     serialize_menu_item,
     serialize_order,
     serialize_staff_profile,
@@ -76,7 +85,10 @@ def create_customer_order():
 
 @api_bp.get("/orders/<int:order_id>")
 def get_customer_order(order_id):
-    return jsonify(serialize_order(get_order(order_id)))
+    order = get_order(order_id)
+    if not (current_user.is_authenticated and current_user.is_admin):
+        verify_customer_order_access(order, request.args.get("key"))
+    return jsonify(serialize_order(order))
 
 
 @api_bp.get("/admin/orders")
@@ -235,6 +247,52 @@ def admin_menu_export():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment; filename=menu.csv"},
     )
+
+
+@api_bp.get("/admin/customers")
+def admin_customer_contacts():
+    require_admin_api("settings:view")
+    marketing_only = request.args.get("marketing_only") == "1"
+    return jsonify([
+        serialize_customer_contact(contact)
+        for contact in list_customer_contacts(marketing_only=marketing_only)
+    ])
+
+
+@api_bp.get("/admin/export/customers.csv")
+def admin_customers_export():
+    require_admin_api("settings:view")
+    marketing_only = request.args.get("marketing_only") == "1"
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "name",
+        "phone",
+        "marketing_opt_in",
+        "order_count",
+        "total_spend",
+        "last_order_at",
+    ])
+    for contact in list_customer_contacts(marketing_only=marketing_only):
+        writer.writerow([
+            contact.name or "",
+            contact.phone,
+            "yes" if contact.marketing_opt_in else "no",
+            contact.order_count,
+            contact.total_spend,
+            contact.last_order_at.isoformat() if contact.last_order_at else "",
+        ])
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=customer-contacts.csv"},
+    )
+
+
+@api_bp.post("/admin/broadcasts")
+def admin_send_broadcast():
+    require_admin_api("staff:manage")
+    return jsonify(send_customer_broadcast(_json_body(), current_app.config))
 
 
 @api_bp.get("/admin/staff")

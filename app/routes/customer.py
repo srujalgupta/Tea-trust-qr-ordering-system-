@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, render_template, request
 
-from app.services.order_service import get_order
+from app.services.order_service import get_order, verify_customer_order_access
 from app.services.table_service import get_table
 
 
@@ -46,4 +46,5 @@ def checkout():
 @customer_bp.get("/order/<int:order_id>")
 def order_status(order_id):
     order = get_order(order_id)
+    verify_customer_order_access(order, request.args.get("key"))
     return render_template("customer/order_status.html", order=order, table=order.table)

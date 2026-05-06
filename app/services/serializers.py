@@ -63,6 +63,20 @@ def serialize_staff_profile(user):
     }
 
 
+def serialize_customer_contact(contact):
+    return {
+        "id": contact.id,
+        "name": contact.name or "",
+        "phone": contact.phone,
+        "marketing_opt_in": contact.marketing_opt_in,
+        "order_count": contact.order_count,
+        "total_spend": money_to_float(contact.total_spend),
+        "first_order_at": contact.first_order_at.isoformat() if contact.first_order_at else None,
+        "last_order_at": contact.last_order_at.isoformat() if contact.last_order_at else None,
+        "last_order_id": contact.last_order_id,
+    }
+
+
 def serialize_payment(payment):
     return {
         "id": payment.id,

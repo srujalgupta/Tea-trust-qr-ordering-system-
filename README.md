@@ -22,11 +22,14 @@ Production-oriented QR cafe ordering system built with Flask, SQLAlchemy, Flask-
 - Menu item CRUD, image upload, availability toggles
 - Branded table QR poster previews with automatic local QR generation, raw QR download, SVG poster download, and print controls
 - Order success screen with token, estimated wait, WhatsApp share link, and return-to-menu action
+- Customer order status links require the random order number lookup key instead of numeric IDs alone
 - Kitchen sound and desktop alerts for new admin dashboard orders
 - Customer checkout remembers name/phone and supports per-item special instructions
-- Admin settings page with password change, production checklist, and backup exports
+- Customer contacts are saved permanently by phone number for opted-in broadcast exports
+- Admin settings page with password change, production checklist, backup exports, and owner-only customer broadcasts
 - POS service hook and notification webhook simulation
-- CSRF protection, basic in-memory rate limiting, logging, and security headers
+- CSRF protection, login/order throttling, hardened session cookies, CSP/HSTS-ready
+  browser headers, image upload validation, logging, and basic in-memory rate limiting
 - Gunicorn deployment files for Render/Railway
 
 ## Local Setup
@@ -100,6 +103,9 @@ order is completed by admin.
 - `GET /api/v1/admin/analytics`
 - `GET /api/v1/admin/export/orders.csv`
 - `GET /api/v1/admin/export/menu.csv`
+- `GET /api/v1/admin/export/customers.csv?marketing_only=1`
+- `GET /api/v1/admin/customers?marketing_only=1`
+- `POST /api/v1/admin/broadcasts`
 - `GET /api/v1/admin/staff`
 - `POST /api/v1/admin/staff`
 - `PATCH /api/v1/admin/staff/<user_id>`
@@ -141,7 +147,8 @@ Use one worker for Flask-SocketIO unless you add a supported message queue such 
 - Set `APP_ENV=production` and `FLASK_CONFIG=production`.
 - Set a strong random `SECRET_KEY` with at least 32 characters; the dev fallback is blocked in production.
 - Set `DATABASE_URL` to a PostgreSQL database, then run `flask --app run.py init-db` and `flask --app run.py seed-data`.
-- Change `ADMIN_PASSWORD` from `admin12345` to a password with at least 10 characters; the app refuses to start in production with the default password.
+- Change `ADMIN_PASSWORD` from `admin12345` to a password with at least 12 characters; the app refuses to start in production with the default password.
+- Keep `AUTH_LOGIN_RATE_LIMIT_REQUESTS` and `ORDER_CREATE_RATE_LIMIT_REQUESTS` low in production, set `TRUST_PROXY_HEADERS=true` only when the app is behind Render/Railway/a trusted reverse proxy, and keep `SECURITY_CSP_ENABLED=true`.
 - Confirm `CAFE_TABLE_COUNT`, then open `/admin/tables` to download or print the QR for each table.
 - Set `SOCKETIO_ASYNC_MODE=eventlet` for Render/Railway-style SocketIO deployment.
 

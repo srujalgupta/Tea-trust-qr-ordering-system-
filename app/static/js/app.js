@@ -15,6 +15,14 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function cssUrl(value) {
+  const escaped = String(value || "")
+    .replace(/[\n\r\f]/g, "")
+    .replaceAll("\\", "\\\\")
+    .replaceAll('"', '\\"');
+  return `url("${escaped}")`;
+}
+
 const FOOD_IMAGE_PALETTES = [
   ["#fff6dc", "#d28b34", "#6f3b18", "#1f7a5c"],
   ["#e8fff2", "#35a96b", "#184d35", "#f6b742"],
@@ -237,6 +245,10 @@ function connectSocket() {
 function initCustomerMenu() {
   const hero = document.querySelector(".menu-hero");
   if (!hero) return;
+
+  if (hero.dataset.posterUrl) {
+    hero.style.setProperty("--poster", cssUrl(hero.dataset.posterUrl));
+  }
 
   const tableId = hero.dataset.tableId || null;
   const menuList = document.getElementById("menuList");
@@ -630,9 +642,11 @@ function initCustomerCartPage() {
     try {
       const customerName = document.getElementById("customerName").value;
       const customerPhone = document.getElementById("customerPhone").value;
+      const marketingOptIn = document.getElementById("marketingOptIn")?.checked || false;
       localStorage.setItem(customerKey, JSON.stringify({
         name: customerName,
         phone: customerPhone,
+        marketingOptIn,
       }));
       const order = await apiFetch("/api/v1/orders", {
         method: "POST",
@@ -640,6 +654,7 @@ function initCustomerCartPage() {
           table_id: tableId,
           customer_name: customerName,
           customer_phone: customerPhone,
+          marketing_opt_in: marketingOptIn,
           notes: document.getElementById("orderNotes").value,
           payment_method: "cash",
           items: orderItems,
@@ -650,7 +665,7 @@ function initCustomerCartPage() {
       itemNotes = {};
       saveCart();
       saveItemNotes();
-      window.location.href = `/order/${order.id}`;
+      window.location.href = `/order/${order.id}?key=${encodeURIComponent(order.order_number)}`;
     } catch (error) {
       cartMessage.textContent = error.message;
       placeOrderButton.disabled = false;
@@ -712,8 +727,10 @@ function initCustomerCartPage() {
     if (checkoutMode) {
       const nameField = document.getElementById("customerName");
       const phoneField = document.getElementById("customerPhone");
+      const marketingField = document.getElementById("marketingOptIn");
       if (nameField && savedCustomer.name) nameField.value = savedCustomer.name;
       if (phoneField && savedCustomer.phone) phoneField.value = savedCustomer.phone;
+      if (marketingField && savedCustomer.marketingOptIn) marketingField.checked = true;
     }
     renderCart();
     if (checkoutMode && cartStats().count) {
@@ -863,6 +880,7 @@ function initOrderStatus() {
   const panel = document.querySelector(".token-panel");
   if (!panel) return;
   const orderId = panel.dataset.orderId;
+  const orderKey = panel.dataset.orderKey || "";
   const tokenNumber = document.getElementById("tokenNumber");
   const tokenStatus = document.getElementById("tokenStatus");
   const details = document.getElementById("orderStatusDetails");
@@ -898,7 +916,7 @@ function initOrderStatus() {
     if (isRefreshing) return;
     isRefreshing = true;
     try {
-      const order = await apiFetch(`/api/v1/orders/${orderId}`);
+      const order = await apiFetch(`/api/v1/orders/${orderId}?key=${encodeURIComponent(orderKey)}`);
       render(order);
     } finally {
       isRefreshing = false;
@@ -908,11 +926,11 @@ function initOrderStatus() {
   const socket = connectSocket();
   if (socket) {
     socket.on("connect", () => {
-      socket.emit("customer_join", { order_id: orderId });
+      socket.emit("customer_join", { order_id: orderId, order_key: orderKey });
       refresh().catch(() => {});
     });
     socket.io?.on("reconnect", () => {
-      socket.emit("customer_join", { order_id: orderId });
+      socket.emit("customer_join", { order_id: orderId, order_key: orderKey });
       refresh().catch(() => {});
     });
     socket.on("order_updated", render);
@@ -1822,10 +1840,13 @@ function initAdminAnalytics() {
     hourly.innerHTML = (payload.hourly || []).map((bucket) => `
       <div class="hourly-bar">
         <span>${String(bucket.hour).padStart(2, "0")}</span>
-        <strong style="height: ${Math.max(4, (bucket.orders / maxOrders) * 100)}%"></strong>
+        <strong data-hour-height="${Math.max(4, (bucket.orders / maxOrders) * 100)}"></strong>
         <small>${bucket.orders}</small>
       </div>
     `).join("");
+    hourly.querySelectorAll("[data-hour-height]").forEach((bar) => {
+      bar.style.height = `${bar.dataset.hourHeight}%`;
+    });
   }
 
   async function load() {
@@ -2207,8 +2228,13 @@ function initAdminSettings() {
   const form = document.getElementById("staffProfileForm");
   const roleSelect = document.getElementById("staffRoleSelect");
   const summary = document.getElementById("staffProfileSummary");
+  const broadcastForm = document.getElementById("broadcastForm");
+  const broadcastSummary = document.getElementById("broadcastContactSummary");
+  const broadcastStatus = document.getElementById("broadcastStatus");
+  const broadcastSendButton = document.getElementById("broadcastSendButton");
   let roles = [];
   let staff = [];
+  let broadcastContacts = [];
 
   function roleOptionsHtml(selectedRole = "counter") {
     return roles.map((role) => (
@@ -2224,6 +2250,12 @@ function initAdminSettings() {
       const activeCount = staff.filter((user) => user.active).length;
       summary.textContent = `${activeCount} active`;
     }
+    if (broadcastSummary) {
+      broadcastSummary.textContent = `${broadcastContacts.length} opted in`;
+    }
+    if (broadcastSendButton) {
+      broadcastSendButton.disabled = broadcastContacts.length === 0;
+    }
     list.innerHTML = staff.map((user) => `
       <article class="admin-row staff-profile-row" data-staff-row="${user.id}">
         <div>
@@ -2234,7 +2266,7 @@ function initAdminSettings() {
           <input name="username" value="${escapeHtml(user.username)}" aria-label="Username">
           <input name="email" type="email" value="${escapeHtml(user.email)}" aria-label="Email">
           <select name="role" aria-label="Profile role">${roleOptionsHtml(user.role)}</select>
-          <input name="password" type="password" placeholder="New password" autocomplete="new-password" minlength="10" aria-label="New password">
+          <input name="password" type="password" placeholder="New password" autocomplete="new-password" minlength="12" aria-label="New password">
           <label class="check-row"><input type="checkbox" name="active" ${user.active ? "checked" : ""}> Active</label>
           <button class="button mini-button" data-save-staff="${user.id}" type="button">Save</button>
         </div>
@@ -2243,11 +2275,40 @@ function initAdminSettings() {
   }
 
   async function load() {
-    const payload = await apiFetch("/api/v1/admin/staff");
-    roles = payload.roles || [];
-    staff = payload.staff || [];
+    const [staffPayload, contactPayload] = await Promise.all([
+      apiFetch("/api/v1/admin/staff"),
+      apiFetch("/api/v1/admin/customers?marketing_only=1"),
+    ]);
+    roles = staffPayload.roles || [];
+    staff = staffPayload.staff || [];
+    broadcastContacts = contactPayload || [];
     render();
   }
+
+  broadcastForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(broadcastForm);
+    broadcastSendButton.disabled = true;
+    broadcastStatus.textContent = "Sending...";
+    try {
+      const result = await apiFetch("/api/v1/admin/broadcasts", {
+        method: "POST",
+        body: {
+          message: data.get("message"),
+        },
+      });
+      broadcastStatus.textContent = `Sent ${result.sent} of ${result.recipient_count}`;
+      if (result.failed) {
+        broadcastStatus.textContent += `, ${result.failed} failed`;
+      }
+      broadcastForm.reset();
+      await load();
+    } catch (error) {
+      broadcastStatus.textContent = error.message;
+    } finally {
+      broadcastSendButton.disabled = broadcastContacts.length === 0;
+    }
+  });
 
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();

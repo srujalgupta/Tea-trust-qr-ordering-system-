@@ -1,11 +1,17 @@
 from urllib.parse import urlsplit
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_user, logout_user
 
 from app.extensions import db
-from app.services.auth_service import admin_required, authenticate_user, permission_required
+from app.services.auth_service import (
+    admin_required,
+    authenticate_user,
+    permission_required,
+    validate_password_strength,
+)
 from app.services.errors import AppError
+from app.services.security import generate_csrf_token
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -51,7 +57,10 @@ def login():
         except AppError as exc:
             flash(exc.message, "error")
         else:
+            session.clear()
             login_user(user)
+            session.permanent = True
+            generate_csrf_token()
             flash("Logged in successfully.", "success")
             return redirect(
                 _safe_next_url(request.args.get("next"))
@@ -65,6 +74,7 @@ def login():
 @admin_required
 def logout():
     logout_user()
+    session.clear()
     flash("Logged out.", "success")
     return redirect(url_for("admin.login"))
 
@@ -116,7 +126,8 @@ def settings():
         database_configured=bool(current_app.config.get("DATABASE_URL")),
         password_changed=bool(admin_password)
         and admin_password != "admin12345"
-        and len(admin_password) >= 10,
+        and len(admin_password) >= current_app.config["PASSWORD_MIN_LENGTH"],
+        password_min_length=current_app.config["PASSWORD_MIN_LENGTH"],
         socketio_eventlet=current_app.config["SOCKETIO_ASYNC_MODE"] == "eventlet",
     )
 
@@ -131,11 +142,13 @@ def change_password():
     if not current_user.check_password(current_password):
         flash("Current password is incorrect.", "error")
         return redirect(url_for("admin.settings"))
-    if len(new_password) < 10:
-        flash("New password must be at least 10 characters.", "error")
-        return redirect(url_for("admin.settings"))
     if new_password != confirm_password:
         flash("New passwords do not match.", "error")
+        return redirect(url_for("admin.settings"))
+    try:
+        validate_password_strength(new_password, username=current_user.username)
+    except AppError as exc:
+        flash(exc.message, "error")
         return redirect(url_for("admin.settings"))
 
     current_user.set_password(new_password)
