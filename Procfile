@@ -1,1 +1,1 @@
-web: unset GUNICORN_CMD_ARGS; flask --app run.py init-db && flask --app run.py seed-data && gunicorn --bind 0.0.0.0:${PORT:-10000} --worker-class eventlet -w 1 wsgi:app
+web: unset GUNICORN_CMD_ARGS; flask --app run.py init-db && flask --app run.py seed-data && gunicorn --bind 0.0.0.0:${PORT:-10000} --worker-class gunicorn.workers.geventlet.EventletWorker -w 1 wsgi:app
