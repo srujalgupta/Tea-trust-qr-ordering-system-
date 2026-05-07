@@ -112,6 +112,11 @@ class TestingConfig(BaseConfig):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = os.getenv("TEST_DATABASE_URL", "sqlite:///:memory:")
     WTF_CSRF_ENABLED = False
+    NOTIFICATION_WEBHOOK_URL = ""
+    WHATSAPP_PHONE_NUMBER_ID = ""
+    WHATSAPP_ACCESS_TOKEN = ""
+    WHATSAPP_BROADCAST_TEMPLATE_NAME = ""
+    WHATSAPP_ALLOW_FREEFORM_TEXT = False
 
 
 class ProductionConfig(BaseConfig):
