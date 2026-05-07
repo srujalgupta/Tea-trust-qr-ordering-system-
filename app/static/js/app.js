@@ -2395,6 +2395,10 @@ function initAdminSettings() {
       }
       if (result.failed) {
         broadcastStatus.textContent += `, ${result.failed} failed`;
+        const firstFailure = result.failures?.[0]?.error;
+        if (firstFailure) {
+          broadcastStatus.textContent += `: ${firstFailure}`;
+        }
       }
       broadcastForm.reset();
       await load();

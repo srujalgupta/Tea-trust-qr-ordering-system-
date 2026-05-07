@@ -26,6 +26,24 @@ services:
         fromDatabase:
           name: qr-cafe-db
           property: connectionString
+      - key: NOTIFICATION_WEBHOOK_URL
+        sync: false
+      - key: BROADCAST_SEND_WORKERS
+        value: 8
+      - key: WHATSAPP_CLOUD_API_VERSION
+        value: v25.0
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_BROADCAST_TEMPLATE_NAME
+        sync: false
+      - key: WHATSAPP_TEMPLATE_LANGUAGE
+        value: en_US
+      - key: WHATSAPP_DEFAULT_COUNTRY_CODE
+        value: 91
+      - key: WHATSAPP_ALLOW_FREEFORM_TEXT
+        value: false
 
 databases:
   - name: qr-cafe-db

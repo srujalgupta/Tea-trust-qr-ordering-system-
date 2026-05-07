@@ -151,6 +151,7 @@ Use one worker for Flask-SocketIO unless you add a supported message queue such 
 - Keep `AUTH_LOGIN_RATE_LIMIT_REQUESTS` and `ORDER_CREATE_RATE_LIMIT_REQUESTS` low in production, set `TRUST_PROXY_HEADERS=true` only when the app is behind Render/Railway/a trusted reverse proxy, and keep `SECURITY_CSP_ENABLED=true`.
 - Confirm `CAFE_TABLE_COUNT`, then open `/admin/tables` to download or print the QR for each table.
 - Set `SOCKETIO_ASYNC_MODE=eventlet` for Render/Railway-style SocketIO deployment.
+- Set either `NOTIFICATION_WEBHOOK_URL` or the WhatsApp Cloud variables before using customer broadcasts in production.
 
 ## Image Guidelines
 
@@ -176,5 +177,7 @@ WHATSAPP_BROADCAST_TEMPLATE_NAME=your_approved_template_name
 WHATSAPP_TEMPLATE_LANGUAGE=en_US
 WHATSAPP_DEFAULT_COUNTRY_CODE=91
 ```
+
+For a webhook-based broadcast test in production, set only `NOTIFICATION_WEBHOOK_URL`. Render users must add it in the Render service environment; local `.env` values are not automatically deployed.
 
 `WHATSAPP_ALLOW_FREEFORM_TEXT=true` is only for active 24-hour WhatsApp chats; normal marketing broadcasts should use an approved template.

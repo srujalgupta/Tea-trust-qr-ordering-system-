@@ -1390,8 +1390,21 @@ p {
 
 .cart-row.cart-page-row {
   grid-template-columns: 76px minmax(0, 1fr) auto;
+  grid-template-areas: "cart-thumb cart-main cart-side";
   gap: 12px;
   align-items: center;
+}
+
+.cart-row.cart-page-row .cart-thumb {
+  grid-area: cart-thumb;
+}
+
+.cart-row.cart-page-row .cart-line-main {
+  grid-area: cart-main;
+}
+
+.cart-row.cart-page-row .cart-line-side {
+  grid-area: cart-side;
 }
 
 .stepper {
@@ -3156,12 +3169,28 @@ p {
   }
 
   .cart-row.cart-page-row {
-    grid-template-columns: 58px minmax(0, 1fr);
+    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-areas:
+      "cart-thumb cart-main"
+      "cart-side cart-side";
+    align-items: start;
+    gap: 10px 12px;
+    padding: 12px 0 14px;
   }
 
   .cart-thumb {
-    width: 58px;
-    height: 58px;
+    width: 64px;
+    height: 64px;
+  }
+
+  .cart-line-main {
+    align-self: start;
+  }
+
+  .cart-line-main strong {
+    display: block;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
   }
 
   .cart-line-side {
@@ -3169,6 +3198,24 @@ p {
     grid-template-columns: 1fr auto;
     align-items: center;
     justify-items: stretch;
+    gap: 10px;
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+  }
+
+  .cart-line-side > strong {
+    min-width: 0;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  .cart-line-side .stepper {
+    justify-self: end;
+    grid-template-columns: 44px 42px 44px;
+  }
+
+  .cart-line-side .stepper button {
+    min-height: 44px;
   }
 
   .receipt-header {

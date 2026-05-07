@@ -11,6 +11,7 @@ from app.services.auth_service import (
     validate_password_strength,
 )
 from app.services.errors import AppError
+from app.services.notification_service import broadcast_delivery_configured
 from app.services.security import generate_csrf_token
 
 
@@ -129,6 +130,7 @@ def settings():
         and len(admin_password) >= current_app.config["PASSWORD_MIN_LENGTH"],
         password_min_length=current_app.config["PASSWORD_MIN_LENGTH"],
         socketio_eventlet=current_app.config["SOCKETIO_ASYNC_MODE"] == "eventlet",
+        broadcast_delivery_configured=broadcast_delivery_configured(current_app.config),
     )
 
 

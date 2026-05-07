@@ -65,8 +65,23 @@ def _whatsapp_configured(settings):
     )
 
 
+def _whatsapp_broadcast_configured(settings):
+    return _whatsapp_configured(settings) and (
+        settings["whatsapp_broadcast_template_name"]
+        or settings["whatsapp_allow_freeform_text"]
+    )
+
+
+def broadcast_delivery_configured(config):
+    settings = _notification_settings(config)
+    return bool(settings["webhook_url"] or _whatsapp_broadcast_configured(settings))
+
+
 def validate_broadcast_delivery(config):
     settings = _notification_settings(config)
+    if broadcast_delivery_configured(config):
+        return
+
     if _whatsapp_configured(settings):
         if (
             not settings["whatsapp_broadcast_template_name"]
@@ -77,10 +92,6 @@ def validate_broadcast_delivery(config):
                 "WHATSAPP_BROADCAST_TEMPLATE_NAME, or set "
                 "WHATSAPP_ALLOW_FREEFORM_TEXT=true only for active 24-hour chats."
             )
-        return
-
-    if settings["webhook_url"]:
-        return
 
     if settings["environment"] == "production":
         raise ValidationError(
@@ -110,6 +121,8 @@ def _post_json(url, payload, headers):
     except urllib_error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:500]
         raise RuntimeError(f"Provider returned HTTP {exc.code}: {detail}") from exc
+    except urllib_error.URLError as exc:
+        raise RuntimeError(f"Provider request failed: {exc.reason}") from exc
 
 
 def _whatsapp_recipient(phone, default_country_code):
@@ -213,7 +226,7 @@ def _send_webhook(payload, webhook_url):
 def _send(payload, config_or_webhook=None):
     settings = _notification_settings(config_or_webhook)
 
-    if payload.get("event") == "broadcast" and _whatsapp_configured(settings):
+    if payload.get("event") == "broadcast" and _whatsapp_broadcast_configured(settings):
         return _send_whatsapp_broadcast(payload, settings)
 
     if not settings["webhook_url"]:
