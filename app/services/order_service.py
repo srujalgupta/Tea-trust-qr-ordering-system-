@@ -187,7 +187,7 @@ def after_order_confirmed(order, config):
     except Exception:
         pass
     try:
-        send_order_confirmation(payload, config.get("NOTIFICATION_WEBHOOK_URL"))
+        send_order_confirmation(payload, config)
     except Exception:
         pass
     emit_order_created(order)
@@ -222,7 +222,7 @@ def update_order_status(order_id, status, config, cancellation_reason=None):
 
     if status == "ready":
         try:
-            send_order_ready(serialize_order(order), config.get("NOTIFICATION_WEBHOOK_URL"))
+            send_order_ready(serialize_order(order), config)
         except Exception:
             pass
     emit_order_updated(order)

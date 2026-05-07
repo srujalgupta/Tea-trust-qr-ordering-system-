@@ -135,6 +135,10 @@ html {
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -302,6 +306,10 @@ body[data-page="customer-menu"] .topbar {
   margin: 0 auto;
   padding: 28px 0 56px;
   animation: panel-rise 0.48s var(--ease-out) 0.04s both;
+}
+
+body[data-page="customer-menu"] .shell {
+  padding-bottom: 128px;
 }
 
 .flash-stack {
@@ -841,42 +849,20 @@ p {
   color: #fff;
 }
 
-.floating-menu-button {
-  position: fixed;
-  right: 22px;
-  bottom: 22px;
-  z-index: 28;
-  min-height: 48px;
-  border: 1px solid rgba(23, 87, 66, 0.24);
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--primary);
-  color: #fff;
-  box-shadow: 0 16px 34px rgba(31, 122, 92, 0.28);
-  cursor: pointer;
-  font-weight: 900;
-  padding: 0 16px;
-  transition:
-    background-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
-}
-
-.floating-menu-button:hover {
-  background: var(--primary-700);
-  box-shadow: 0 20px 42px rgba(31, 122, 92, 0.34);
-  transform: translateY(-2px);
-}
-
-.floating-menu-button .action-icon {
-  width: 21px;
-  height: 21px;
-}
-
 .mobile-checkout-bar {
-  display: none;
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  width: min(520px, calc(100vw - 48px));
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 40px rgba(29, 35, 40, 0.2);
+  padding: 10px;
+  backdrop-filter: blur(12px);
+  animation: panel-rise 0.38s var(--ease-out) both;
 }
 
 .shop-layout {
@@ -1208,6 +1194,13 @@ p {
   box-shadow: var(--shadow);
   padding: 24px;
   animation: panel-rise 0.46s var(--ease-out) both;
+}
+
+.cart-page-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .cart-page-heading h1 {
@@ -3123,6 +3116,15 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .cart-page-heading-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .cart-page-heading-actions .button {
+    width: 100%;
+  }
+
   .compact-input {
     max-width: none;
   }
@@ -3136,24 +3138,10 @@ p {
   }
 
   .mobile-checkout-bar {
-    position: fixed;
     left: 12px;
     right: 12px;
     bottom: 12px;
-    z-index: 30;
-    display: grid;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.96);
-    box-shadow: 0 18px 40px rgba(29, 35, 40, 0.2);
-    padding: 10px;
-    backdrop-filter: blur(12px);
-    animation: panel-rise 0.38s var(--ease-out) both;
-  }
-
-  .floating-menu-button {
-    right: 16px;
-    bottom: 96px;
+    width: auto;
   }
 
   .mobile-checkout-bar .customer-action-button {

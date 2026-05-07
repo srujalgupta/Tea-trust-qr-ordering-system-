@@ -1,6 +1,7 @@
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
 const pageId = document.body.dataset.page || "";
 const cafeName = document.querySelector(".brand strong, .admin-brand strong")?.textContent?.trim() || "Tea Trust Cafe";
+const currentOrderKey = "qrCafeCurrentOrder";
 
 function money(value) {
   return `INR ${Number(value || 0).toFixed(2)}`;
@@ -21,6 +22,95 @@ function cssUrl(value) {
     .replaceAll("\\", "\\\\")
     .replaceAll('"', '\\"');
   return `url("${escaped}")`;
+}
+
+function orderStatusUrl(order) {
+  const id = order?.id;
+  const key = order?.order_number || order?.orderKey || order?.key;
+  if (!id || !key) return "";
+  return `/order/${encodeURIComponent(id)}?key=${encodeURIComponent(key)}`;
+}
+
+function orderApiUrl(order) {
+  const id = order?.id;
+  const key = order?.order_number || order?.orderKey || order?.key;
+  if (!id || !key) return "";
+  return `/api/v1/orders/${encodeURIComponent(id)}?key=${encodeURIComponent(key)}`;
+}
+
+function readCurrentOrder() {
+  try {
+    const order = JSON.parse(localStorage.getItem(currentOrderKey) || "null");
+    if (!orderStatusUrl(order)) return null;
+    return order;
+  } catch {
+    localStorage.removeItem(currentOrderKey);
+    return null;
+  }
+}
+
+function saveCurrentOrder(order) {
+  const id = order?.id;
+  const orderNumber = order?.order_number || order?.orderKey || order?.key;
+  if (!id || !orderNumber) return;
+  localStorage.setItem(currentOrderKey, JSON.stringify({
+    id,
+    order_number: orderNumber,
+    table_id: order.table_id ?? order.tableId ?? null,
+    table_label: order.table_label || "",
+    status: order.status || "pending",
+    token_number: order.token_number ?? null,
+    total_amount: Number(order.total_amount || 0),
+    created_at: order.created_at || "",
+    saved_at: new Date().toISOString(),
+  }));
+}
+
+function clearCurrentOrder() {
+  localStorage.removeItem(currentOrderKey);
+}
+
+function currentOrderActionLabel(order) {
+  if (order?.status === "completed") return "View last bill";
+  if (order?.status === "cancelled") return "View cancelled order";
+  return "Track current order";
+}
+
+function currentOrderBelongsToTable(order, tableId) {
+  if (!tableId || !order?.table_id) return true;
+  return String(order.table_id) === String(tableId);
+}
+
+function setupCurrentOrderLinks(linkIds, tableId = null) {
+  const links = linkIds.map((id) => document.getElementById(id)).filter(Boolean);
+  if (!links.length) return;
+
+  function render(order) {
+    const href = order && currentOrderBelongsToTable(order, tableId) ? orderStatusUrl(order) : "";
+    links.forEach((link) => {
+      if (!href) {
+        link.hidden = true;
+        link.removeAttribute("href");
+        return;
+      }
+      link.hidden = false;
+      link.href = href;
+      link.textContent = currentOrderActionLabel(order);
+      link.setAttribute("aria-label", `${currentOrderActionLabel(order)} ${order.order_number}`);
+    });
+  }
+
+  const storedOrder = readCurrentOrder();
+  render(storedOrder);
+  if (!storedOrder) return;
+
+  apiFetch(orderApiUrl(storedOrder)).then((order) => {
+    saveCurrentOrder(order);
+    render(order);
+  }).catch(() => {
+    clearCurrentOrder();
+    render(null);
+  });
 }
 
 const FOOD_IMAGE_PALETTES = [
@@ -207,7 +297,7 @@ document.addEventListener("error", (event) => {
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
   const animated = event.target.closest(
-    ".button, .icon-button, .chip, .customer-action-button, .floating-menu-button, .admin-nav-link, .delivery-app-button, .menu-section-toggle, .stepper button",
+    ".button, .icon-button, .chip, .customer-action-button, .admin-nav-link, .delivery-app-button, .menu-section-toggle, .stepper button",
   );
   if (animated) animatePress(animated);
 });
@@ -258,7 +348,6 @@ function initCustomerMenu() {
   const checkoutShortcutButton = document.getElementById("checkoutShortcut");
   const mobileCartShortcutButton = document.getElementById("mobileCartShortcut");
   const mobileCheckoutShortcutButton = document.getElementById("mobileCheckoutShortcut");
-  const floatingMenuButton = document.getElementById("floatingMenuButton");
   const cartCountEls = [
     document.getElementById("cartItemCount"),
     document.getElementById("mobileCartItemCount"),
@@ -280,6 +369,7 @@ function initCustomerMenu() {
   if (tableId) {
     localStorage.setItem(tableKey, tableId);
   }
+  setupCurrentOrderLinks(["menuCurrentOrderLink"], tableId || localStorage.getItem(tableKey) || null);
 
   function saveCart() {
     localStorage.setItem(cartKey, JSON.stringify(cart));
@@ -502,14 +592,6 @@ function initCustomerMenu() {
   mobileCartShortcutButton?.addEventListener("click", () => goToCustomerPage("/cart"));
   checkoutShortcutButton?.addEventListener("click", () => goToCustomerPage("/checkout"));
   mobileCheckoutShortcutButton?.addEventListener("click", () => goToCustomerPage("/checkout"));
-  floatingMenuButton?.addEventListener("click", () => {
-    const target = searchInput.closest(".menu-tools") || categoryTabs || menuList;
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => {
-      searchInput.focus({ preventScroll: true });
-      searchInput.select();
-    }, 320);
-  });
   searchInput.addEventListener("input", renderAll);
   loadMenu().catch((error) => {
     menuList.innerHTML = `<p class="helper-text">${escapeHtml(error.message)}</p>`;
@@ -542,6 +624,7 @@ function initCustomerCartPage() {
     localStorage.setItem(tableKey, shell.dataset.tableId);
     tableId = shell.dataset.tableId;
   }
+  setupCurrentOrderLinks(["cartCurrentOrderLink"], tableId);
 
   function customerPageUrl(path) {
     const url = new URL(path, window.location.origin);
@@ -665,7 +748,8 @@ function initCustomerCartPage() {
       itemNotes = {};
       saveCart();
       saveItemNotes();
-      window.location.href = `/order/${order.id}?key=${encodeURIComponent(order.order_number)}`;
+      saveCurrentOrder(order);
+      window.location.href = orderStatusUrl(order);
     } catch (error) {
       cartMessage.textContent = error.message;
       placeOrderButton.disabled = false;
@@ -892,9 +976,17 @@ function initOrderStatus() {
   let isRefreshing = false;
   let currentOrder = null;
 
+  saveCurrentOrder({
+    id: orderId,
+    order_number: orderKey,
+    table_id: panel.dataset.tableId || null,
+    status: "pending",
+  });
+
   function render(order) {
     if (!order || String(order.id) !== String(orderId)) return;
     currentOrder = order;
+    saveCurrentOrder(order);
     tokenNumber.textContent = order.token_number ? `Token ${order.token_number}` : "Payment pending";
     tokenStatus.textContent = customerStatusLabel(order.status);
     tokenStatus.className = `status-pill status-${order.status}`;
@@ -2298,6 +2390,9 @@ function initAdminSettings() {
         },
       });
       broadcastStatus.textContent = `Sent ${result.sent} of ${result.recipient_count}`;
+      if (result.mode && result.mode !== "none") {
+        broadcastStatus.textContent += ` via ${result.mode.replaceAll("_", " ")}`;
+      }
       if (result.failed) {
         broadcastStatus.textContent += `, ${result.failed} failed`;
       }

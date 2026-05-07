@@ -163,3 +163,18 @@ Set `POS_WEBHOOK_URL` to send order JSON to a POS endpoint. If unset, the POS se
 ## Notifications
 
 Set `NOTIFICATION_WEBHOOK_URL` to receive simulated WhatsApp-style JSON notifications for order confirmation and ready status. If unset, notifications are logged.
+
+## WhatsApp Broadcasts
+
+Customer broadcasts send to every opted-in customer from Admin Settings. In local development they run in mock mode unless a provider is configured. For real WhatsApp Cloud delivery, create an approved marketing template with one body variable for the message text, then set:
+
+```env
+BROADCAST_SEND_WORKERS=8
+WHATSAPP_PHONE_NUMBER_ID=your_meta_phone_number_id
+WHATSAPP_ACCESS_TOKEN=your_meta_access_token
+WHATSAPP_BROADCAST_TEMPLATE_NAME=your_approved_template_name
+WHATSAPP_TEMPLATE_LANGUAGE=en_US
+WHATSAPP_DEFAULT_COUNTRY_CODE=91
+```
+
+`WHATSAPP_ALLOW_FREEFORM_TEXT=true` is only for active 24-hour WhatsApp chats; normal marketing broadcasts should use an approved template.

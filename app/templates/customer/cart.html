@@ -11,7 +11,10 @@
         <h1>{% if checkout_mode %}Checkout{% else %}Your Cart{% endif %}</h1>
         <p>{% if checkout_mode %}Review your receipt, add your details, and pay directly at the store.{% else %}Review your receipt before checkout.{% endif %}</p>
       </div>
-      <a class="button" id="continueMenuLink" href="{{ url_for('customer.menu') }}">Back to menu</a>
+      <div class="cart-page-heading-actions">
+        <a class="button current-order-link" id="cartCurrentOrderLink" href="#" hidden>Track current order</a>
+        <a class="button" id="continueMenuLink" href="{{ url_for('customer.menu') }}">Back to menu</a>
+      </div>
     </div>
 
     <section class="{% if checkout_mode %}checkout-layout{% else %}cart-page-layout{% endif %}">

@@ -26,6 +26,7 @@
       <div class="menu-hero-actions">
         <a class="button primary" href="#menuList">Browse menu</a>
         <a class="button hero-ghost-button" href="{{ url_for('customer.cart', table=table.id) if table else url_for('customer.cart') }}">View cart</a>
+        <a class="button hero-ghost-button current-order-link" id="menuCurrentOrderLink" href="#" hidden>Track current order</a>
       </div>
     </div>
   </section>
@@ -76,15 +77,6 @@
   <section class="shop-layout">
     <div id="menuList" class="menu-section-list" aria-live="polite"></div>
   </section>
-
-  <button id="floatingMenuButton" class="floating-menu-button" type="button" aria-label="Find food in the menu">
-    <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 6.5h16" />
-      <path d="M4 12h16" />
-      <path d="M4 17.5h9" />
-    </svg>
-    <span>Menu</span>
-  </button>
 
   <div class="mobile-checkout-bar" aria-label="Cart and checkout">
     <button id="mobileCartShortcut" class="customer-action-button cart-action" type="button" aria-label="View cart">
