@@ -129,5 +129,16 @@ def update_staff_profile(user_id, data, actor=None):
     return user
 
 
+def delete_staff_profile(user_id, actor=None):
+    user = get_staff_profile(user_id)
+    _protect_last_owner(user, next_active=False)
+
+    if actor and actor.id == user.id:
+        raise ValidationError("You cannot delete your own profile.")
+
+    db.session.delete(user)
+    db.session.commit()
+
+
 def role_options_payload():
     return [{"value": value, "label": STAFF_ROLE_LABELS[value]} for value in STAFF_ROLE_LABELS]

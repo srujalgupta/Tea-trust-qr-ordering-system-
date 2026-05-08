@@ -2162,9 +2162,9 @@ p {
 }
 
 .staff-profile-edit-grid {
-  grid-template-columns: minmax(130px, 1fr) minmax(170px, 1fr) minmax(150px, 0.8fr) minmax(170px, 1fr) auto auto;
+  grid-template-columns: minmax(130px, 1fr) minmax(170px, 1fr) minmax(150px, 0.8fr) minmax(170px, 1fr) auto auto auto;
   align-items: center;
-  min-width: 820px;
+  min-width: 920px;
 }
 
 .analytics-metrics {

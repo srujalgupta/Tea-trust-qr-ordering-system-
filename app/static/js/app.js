@@ -2361,6 +2361,7 @@ function initAdminSettings() {
           <input name="password" type="password" placeholder="New password" autocomplete="new-password" minlength="12" aria-label="New password">
           <label class="check-row"><input type="checkbox" name="active" ${user.active ? "checked" : ""}> Active</label>
           <button class="button mini-button" data-save-staff="${user.id}" type="button">Save</button>
+          <button class="button danger mini-button" data-delete-staff="${user.id}" data-staff-name="${escapeHtml(user.username)}" type="button">Delete</button>
         </div>
       </article>
     `).join("") || `<p class="helper-text">No staff profiles found.</p>`;
@@ -2426,6 +2427,17 @@ function initAdminSettings() {
   });
 
   list.addEventListener("click", async (event) => {
+    const deleteButton = event.target.closest("[data-delete-staff]");
+    if (deleteButton) {
+      const staffName = deleteButton.dataset.staffName || "this profile";
+      if (!window.confirm(`Delete ${staffName}?`)) return;
+      await apiFetch(`/api/v1/admin/staff/${deleteButton.dataset.deleteStaff}`, {
+        method: "DELETE",
+      });
+      await load();
+      return;
+    }
+
     const saveButton = event.target.closest("[data-save-staff]");
     if (!saveButton) return;
     const row = saveButton.closest("[data-staff-row]");

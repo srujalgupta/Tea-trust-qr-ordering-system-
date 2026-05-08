@@ -40,6 +40,7 @@ from app.services.table_service import create_table, list_tables, update_table
 from app.services.upload_service import save_menu_image
 from app.services.user_service import (
     create_staff_profile,
+    delete_staff_profile,
     list_staff_profiles,
     role_options_payload,
     update_staff_profile,
@@ -315,6 +316,13 @@ def admin_update_staff_profile(user_id):
     require_admin_api("staff:manage")
     user = update_staff_profile(user_id, _json_body(), actor=current_user)
     return jsonify(serialize_staff_profile(user))
+
+
+@api_bp.delete("/admin/staff/<int:user_id>")
+def admin_delete_staff_profile(user_id):
+    require_admin_api("staff:manage")
+    delete_staff_profile(user_id, actor=current_user)
+    return "", 204
 
 
 @api_bp.post("/admin/categories")

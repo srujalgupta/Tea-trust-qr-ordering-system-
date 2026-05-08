@@ -170,6 +170,23 @@ def main():
     assert staff.status_code == 201, staff.get_data(as_text=True)
     assert staff.json["role"] == "kitchen"
 
+    temporary_staff = client.post(
+        "/api/v1/admin/staff",
+        json={
+            "username": "temporary",
+            "password": "TempTea2026!",
+            "role": "counter",
+        },
+        headers={"X-CSRFToken": token},
+    )
+    assert temporary_staff.status_code == 201, temporary_staff.get_data(as_text=True)
+
+    deleted_staff = client.delete(
+        f"/api/v1/admin/staff/{temporary_staff.json['id']}",
+        headers={"X-CSRFToken": token},
+    )
+    assert deleted_staff.status_code == 204, deleted_staff.get_data(as_text=True)
+
     logout = client.post("/admin/logout", data={"csrf_token": token})
     assert logout.status_code in {200, 302}
 
