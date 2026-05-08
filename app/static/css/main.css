@@ -2109,7 +2109,6 @@ p {
 
 .staff-profiles-panel {
   margin-bottom: 18px;
-  overflow-x: auto;
 }
 
 .broadcast-panel {
@@ -2143,26 +2142,30 @@ p {
   grid-template-columns: minmax(140px, 1fr) minmax(180px, 1fr) minmax(150px, 0.8fr) minmax(180px, 1fr) auto;
   align-items: center;
   margin-bottom: 14px;
-  min-width: 980px;
 }
 
 .staff-profile-list {
   display: grid;
   gap: 12px;
-  min-width: 980px;
 }
 
 .staff-profile-row {
   display: grid;
-  grid-template-columns: minmax(160px, 0.7fr) minmax(0, 1fr);
+  grid-template-columns: minmax(160px, 0.45fr) minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }
 
 .staff-profile-edit-grid {
-  grid-template-columns: minmax(130px, 1fr) minmax(170px, 1fr) minmax(150px, 0.8fr) minmax(170px, 1fr) auto auto auto;
+  grid-template-columns: minmax(130px, 1fr) minmax(170px, 1fr) minmax(140px, 0.8fr) minmax(160px, 1fr) auto auto;
   align-items: center;
-  min-width: 920px;
+}
+
+.staff-profile-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .analytics-metrics {
@@ -2976,6 +2979,20 @@ p {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .staff-profile-row {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-profile-edit-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+
+  .staff-profile-actions {
+    justify-content: flex-start;
   }
 }
 

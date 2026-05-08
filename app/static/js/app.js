@@ -2360,8 +2360,10 @@ function initAdminSettings() {
           <select name="role" aria-label="Profile role">${roleOptionsHtml(user.role)}</select>
           <input name="password" type="password" placeholder="New password" autocomplete="new-password" minlength="12" aria-label="New password">
           <label class="check-row"><input type="checkbox" name="active" ${user.active ? "checked" : ""}> Active</label>
-          <button class="button mini-button" data-save-staff="${user.id}" type="button">Save</button>
-          <button class="button danger mini-button" data-delete-staff="${user.id}" data-staff-name="${escapeHtml(user.username)}" type="button">Delete</button>
+          <div class="staff-profile-actions">
+            <button class="button mini-button" data-save-staff="${user.id}" type="button">Save</button>
+            <button class="button danger mini-button" data-delete-staff="${user.id}" data-staff-name="${escapeHtml(user.username)}" type="button">Delete</button>
+          </div>
         </div>
       </article>
     `).join("") || `<p class="helper-text">No staff profiles found.</p>`;
