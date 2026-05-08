@@ -2084,9 +2084,7 @@ p {
   margin-bottom: 18px;
 }
 
-.settings-list,
-.checklist,
-.export-actions {
+.settings-list {
   display: grid;
   gap: 10px;
 }

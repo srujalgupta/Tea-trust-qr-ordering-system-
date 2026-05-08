@@ -11,7 +11,6 @@ from app.services.auth_service import (
     validate_password_strength,
 )
 from app.services.errors import AppError
-from app.services.notification_service import broadcast_delivery_configured
 from app.services.security import generate_csrf_token
 
 
@@ -115,22 +114,11 @@ def analytics():
 def settings():
     database_uri = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
     database_label = "PostgreSQL" if database_uri.startswith("postgresql") else "SQLite / local"
-    secret_key = current_app.config["SECRET_KEY"]
-    admin_password = current_app.config["ADMIN_PASSWORD"]
     return render_template(
         "admin/settings.html",
         database_label=database_label,
         environment_name=current_app.config["ENV_NAME"],
-        secret_configured=bool(secret_key)
-        and secret_key != "dev-only-change-me"
-        and len(secret_key) >= 32,
-        database_configured=bool(current_app.config.get("DATABASE_URL")),
-        password_changed=bool(admin_password)
-        and admin_password != "admin12345"
-        and len(admin_password) >= current_app.config["PASSWORD_MIN_LENGTH"],
         password_min_length=current_app.config["PASSWORD_MIN_LENGTH"],
-        socketio_eventlet=current_app.config["SOCKETIO_ASYNC_MODE"] == "eventlet",
-        broadcast_delivery_configured=broadcast_delivery_configured(current_app.config),
     )
 
 
