@@ -44,33 +44,6 @@
     </section>
   </section>
 
-  <section class="dashboard-panels">
-    <article class="dashboard-card">
-      <header class="panel-header">
-        <h2>Backup Exports</h2>
-      </header>
-      <div class="export-actions">
-        <a class="button" href="{{ url_for('api.admin_orders_export') }}">Download orders CSV</a>
-        <a class="button" href="{{ url_for('api.admin_menu_export') }}">Download menu CSV</a>
-        <a class="button" href="{{ url_for('api.admin_customers_export', marketing_only=1) }}">Download broadcast contacts</a>
-      </div>
-    </article>
-
-    <article class="dashboard-card">
-      <header class="panel-header">
-        <h2>Production Checklist</h2>
-      </header>
-      <div class="checklist">
-        <label class="check-row"><input type="checkbox" disabled {% if environment_name == "production" %}checked{% endif %}> Production config enabled</label>
-        <label class="check-row"><input type="checkbox" disabled {% if secret_configured %}checked{% endif %}> Strong secret key set</label>
-        <label class="check-row"><input type="checkbox" disabled {% if database_configured %}checked{% endif %}> Database URL configured</label>
-        <label class="check-row"><input type="checkbox" disabled {% if password_changed %}checked{% endif %}> Default admin password changed</label>
-        <label class="check-row"><input type="checkbox" disabled {% if socketio_eventlet %}checked{% endif %}> SocketIO eventlet mode set</label>
-        <label class="check-row"><input type="checkbox" disabled {% if broadcast_delivery_configured %}checked{% endif %}> Broadcast delivery configured</label>
-      </div>
-    </article>
-  </section>
-
   {% if current_user.can('staff:manage') %}
     <section class="dashboard-card broadcast-panel">
       <header class="panel-header">
