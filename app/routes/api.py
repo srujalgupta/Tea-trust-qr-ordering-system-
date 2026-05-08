@@ -190,7 +190,7 @@ def admin_analytics():
 
 @api_bp.get("/admin/export/orders.csv")
 def admin_orders_export():
-    require_admin_api("settings:view")
+    require_admin_api("staff:manage")
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow([
@@ -229,7 +229,7 @@ def admin_orders_export():
 
 @api_bp.get("/admin/export/menu.csv")
 def admin_menu_export():
-    require_admin_api("settings:view")
+    require_admin_api("staff:manage")
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(["category", "name", "price", "available", "veg", "bestseller", "tags"])
@@ -252,7 +252,7 @@ def admin_menu_export():
 
 @api_bp.get("/admin/customers")
 def admin_customer_contacts():
-    require_admin_api("settings:view")
+    require_admin_api("staff:manage")
     marketing_only = request.args.get("marketing_only") == "1"
     return jsonify([
         serialize_customer_contact(contact)
@@ -262,7 +262,7 @@ def admin_customer_contacts():
 
 @api_bp.get("/admin/export/customers.csv")
 def admin_customers_export():
-    require_admin_api("settings:view")
+    require_admin_api("staff:manage")
     marketing_only = request.args.get("marketing_only") == "1"
     output = StringIO()
     writer = csv.writer(output)

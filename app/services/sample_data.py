@@ -215,9 +215,9 @@ def _upsert_category(name, display_order):
     if not category:
         category = Category(name=name)
         db.session.add(category)
-    category.display_order = display_order
-    category.description = None
-    category.is_active = True
+        category.display_order = display_order
+        category.description = None
+        category.is_active = True
     return category
 
 
@@ -226,12 +226,12 @@ def _upsert_menu_item(category, name, price, tags):
     if not item:
         item = MenuItem(category=category, name=name)
         db.session.add(item)
-    item.description = ""
-    item.price = _price(price)
-    item.tags = tags
-    item.is_veg = True
-    item.is_bestseller = False
-    item.is_available = True
+        item.description = ""
+        item.price = _price(price)
+        item.tags = tags
+        item.is_veg = True
+        item.is_bestseller = False
+        item.is_available = True
     return item
 
 
@@ -271,23 +271,11 @@ def seed_sample_data(config):
 
     _rename_existing_seed_data()
 
-    active_category_names = {name for name, _ in CATEGORIES}
-    active_item_keys = {(category_name, name) for category_name, name, _, _ in MENU_ITEMS}
-
-    for category in Category.query.all():
-        if category.name not in active_category_names:
-            category.is_active = False
-
     categories = {}
     for name, display_order in CATEGORIES:
         categories[name] = _upsert_category(name, display_order)
 
     db.session.flush()
-
-    for item in MenuItem.query.all():
-        category_name = item.category.name if item.category else None
-        if (category_name, item.name) not in active_item_keys:
-            item.is_available = False
 
     for category_name, name, price, tags in MENU_ITEMS:
         _upsert_menu_item(categories[category_name], name, price, tags)
@@ -298,12 +286,9 @@ def seed_sample_data(config):
         if not table:
             table = CafeTable(table_number=table_number)
             db.session.add(table)
+            table.is_active = True
         table.label = table.label or f"Table {table_number}"
         table.qr_slug = table.qr_slug or f"table-{table_number}"
-        table.is_active = True
-
-    for table in CafeTable.query.filter(CafeTable.table_number > table_count).all():
-        table.is_active = False
 
     db.session.commit()
     return admin

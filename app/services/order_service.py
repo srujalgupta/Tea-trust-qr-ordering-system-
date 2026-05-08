@@ -70,7 +70,11 @@ def _get_menu_items(item_quantities):
     if missing:
         raise ValidationError(f"Menu item not found: {sorted(missing)[0]}.")
 
-    unavailable = [item.name for item in found.values() if not item.is_available]
+    unavailable = [
+        item.name
+        for item in found.values()
+        if not item.is_available or not item.category or not item.category.is_active
+    ]
     if unavailable:
         raise ValidationError(f"{unavailable[0]} is currently unavailable.")
     return found

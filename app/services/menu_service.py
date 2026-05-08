@@ -1,7 +1,7 @@
 from decimal import Decimal, InvalidOperation
 
 from app.extensions import db
-from app.models import Category, MenuItem
+from app.models import Category, MenuItem, OrderItem
 from .errors import NotFoundError, ValidationError
 from .serializers import serialize_category, serialize_menu_item
 
@@ -169,6 +169,11 @@ def update_menu_item(item_id, data):
 
 def delete_menu_item(item_id):
     item = get_menu_item(item_id)
+    has_order_history = db.session.query(OrderItem.id).filter_by(menu_item_id=item.id).first()
+    if has_order_history:
+        item.is_available = False
+        db.session.commit()
+        return
     db.session.delete(item)
     db.session.commit()
 
