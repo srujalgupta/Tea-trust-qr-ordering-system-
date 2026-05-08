@@ -7,7 +7,7 @@
     <title>{% block title %}{{ cafe.name }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=26">
   </head>
-  <body data-page="{% block page_id %}{% endblock %}">
+  <body data-page="{% block page_id %}{% endblock %}" data-cafe-name="{{ cafe.name }}">
     {% if current_user.is_authenticated and current_user.is_admin %}
       {% set admin_home = url_for('admin.dashboard') if current_user.can('dashboard:view') else (url_for('admin.kitchen_display') if current_user.can('orders:update') else (url_for('admin.menu_manager') if current_user.can('menu:manage') else url_for('admin.settings'))) %}
       <div class="admin-app">
@@ -141,7 +141,7 @@
     {% endif %}
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" defer></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=30" defer></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=31" defer></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

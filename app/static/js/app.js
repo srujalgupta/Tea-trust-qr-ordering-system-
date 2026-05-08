@@ -1,7 +1,18 @@
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
 const pageId = document.body.dataset.page || "";
-const cafeName = document.querySelector(".brand strong, .admin-brand strong")?.textContent?.trim() || "Tea Trust Cafe";
+const cafeName = document.body.dataset.cafeName?.trim()
+  || document.querySelector(".brand strong, .admin-brand strong")?.textContent?.trim()
+  || "Tea Trust Cafe";
 const currentOrderKey = "qrCafeCurrentOrder";
+
+function filenamePart(value) {
+  return String(value || "qr-cafe")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    || "qr-cafe";
+}
 
 function money(value) {
   return `INR ${Number(value || 0).toFixed(2)}`;
@@ -2168,7 +2179,7 @@ function initAdminTables() {
     const blob = new Blob([posterSvg(table)], { type: "image/svg+xml" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `tea-trust-${table.qr_slug}-poster.svg`;
+    link.download = `${filenamePart(cafeName)}-${table.qr_slug}-poster.svg`;
     document.body.append(link);
     link.click();
     link.remove();
@@ -2198,7 +2209,7 @@ function initAdminTables() {
             <label class="check-row"><input type="checkbox" name="is_active" ${table.is_active ? "checked" : ""}> Active</label>
           </div>
           <div class="row-actions">
-            <a class="button mini-button" href="${escapeHtml(qrUrl)}" download="tea-trust-${escapeHtml(table.qr_slug)}.png">Download QR</a>
+            <a class="button mini-button" href="${escapeHtml(qrUrl)}" download="${filenamePart(cafeName)}-${escapeHtml(table.qr_slug)}.png">Download QR</a>
             <button class="button mini-button" data-download-poster="${table.id}" type="button">Download poster</button>
             <button class="button mini-button" data-print-qr="${table.id}" type="button">Print poster</button>
             <button class="button mini-button" data-copy-table-url="${table.id}" type="button">Copy link</button>
@@ -2214,15 +2225,19 @@ function initAdminTables() {
       const menuUrl = `${window.location.origin}${table.menu_url}`;
       return `
         <section class="print-qr-card">
-          <div class="print-head">
+          <header class="print-head">
             <img class="print-logo" src="/static/brand/tea_trust_logo.png" alt="">
             <strong>${escapeHtml(cafeName)}</strong>
+          </header>
+          <div class="print-body">
+            <p class="print-kicker">Scan to order</p>
+            <h1>${escapeHtml(table.label)}</h1>
+            <div class="print-qr-frame">
+              <img class="print-qr" src="${escapeHtml(qrImageUrl(table, 520))}" alt="QR code for ${escapeHtml(table.label)}">
+            </div>
+            <p class="print-help">Open camera, scan, and place your order</p>
+            <small>${escapeHtml(menuUrl)}</small>
           </div>
-          <p class="print-kicker">Scan to order</p>
-          <h1>${escapeHtml(table.label)}</h1>
-          <img class="print-qr" src="${escapeHtml(qrImageUrl(table, 420))}" alt="">
-          <p class="print-help">Open camera, scan, and place your order</p>
-          <small>${escapeHtml(menuUrl)}</small>
         </section>
       `;
     }).join("");
@@ -2232,24 +2247,58 @@ function initAdminTables() {
       <!doctype html>
       <title>Table QR Codes</title>
       <style>
-        body { background: #f6f8f7; font-family: Arial, sans-serif; margin: 0; padding: 24px; }
-        .print-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
-        .print-qr-card { break-inside: avoid; border: 3px solid #dce4e8; border-radius: 24px; background: #fff; padding: 30px; text-align: center; }
-        .print-head { display: grid; justify-items: center; gap: 10px; margin-bottom: 18px; }
-        .print-logo { width: 92px; height: 92px; border-radius: 999px; object-fit: cover; background: #000; }
-        .print-head strong { color: #1d2328; font-size: 24px; }
-        .print-kicker { margin: 0 0 8px; color: #c85f28; font-size: 22px; font-weight: 900; text-transform: uppercase; }
-        .print-qr-card h1 { margin: 0 0 18px; color: #1f7a5c; font-size: 44px; line-height: 1; }
-        .print-qr { width: 290px; height: 290px; border: 1px solid #dce4e8; border-radius: 18px; padding: 12px; }
-        .print-help { margin: 16px 0 10px; color: #1d2328; font-size: 18px; font-weight: 800; }
-        small { color: #65717b; overflow-wrap: anywhere; }
-        @media print { body { background: #fff; padding: 0; } .print-grid { gap: 0; } .print-qr-card { min-height: 45vh; border-radius: 0; } }
+        * { box-sizing: border-box; }
+        body { background: #f6f8f7; font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 20px; color: #1d2328; }
+        .print-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .print-qr-card {
+          width: min(100%, 520px);
+          margin: 0 auto;
+          break-inside: avoid;
+          page-break-inside: avoid;
+          border: 3px solid #dce4e8;
+          border-radius: 24px;
+          background: #fff;
+          overflow: hidden;
+          text-align: center;
+        }
+        .print-head { display: grid; justify-items: center; gap: 10px; padding: 26px 28px 20px; background: #1f7a5c; color: #fff; }
+        .print-logo { width: 96px; height: 96px; border-radius: 999px; object-fit: cover; background: #000; border: 5px solid #fff; }
+        .print-head strong { max-width: 100%; font-size: 28px; line-height: 1.15; overflow-wrap: anywhere; }
+        .print-body { display: grid; justify-items: center; gap: 14px; padding: 26px 30px 30px; }
+        .print-kicker { margin: 0; color: #c85f28; font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
+        .print-qr-card h1 { margin: 0; color: #1f7a5c; font-size: 48px; line-height: 1.05; overflow-wrap: anywhere; }
+        .print-qr-frame { width: 340px; max-width: 100%; border: 2px solid #dce4e8; border-radius: 22px; background: #fff; padding: 14px; }
+        .print-qr { width: 100%; aspect-ratio: 1; display: block; }
+        .print-help { margin: 0; color: #1d2328; font-size: 19px; font-weight: 800; }
+        small { color: #65717b; overflow-wrap: anywhere; font-size: 11px; line-height: 1.35; }
+        @page { size: A4 portrait; margin: 10mm; }
+        @media print {
+          body { background: #fff; padding: 0; }
+          .print-grid { display: block; }
+          .print-qr-card { width: 100%; max-width: 148mm; margin: 0 auto; page-break-after: always; border-radius: 18px; }
+          .print-qr-card:last-child { page-break-after: auto; }
+        }
       </style>
       <body><main class="print-grid">${content}</main></body>
     `);
     printWindow.document.close();
-    printWindow.focus();
-    window.setTimeout(() => printWindow.print(), 450);
+    const images = [...printWindow.document.images];
+    let printed = false;
+    const printReady = () => {
+      if (printed) return;
+      printed = true;
+      printWindow.focus();
+      printWindow.print();
+    };
+    const imageLoads = images.map((image) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        image.addEventListener("load", resolve, { once: true });
+        image.addEventListener("error", resolve, { once: true });
+      });
+    });
+    Promise.all(imageLoads).then(printReady);
+    window.setTimeout(printReady, 1600);
   }
 
   async function load() {
