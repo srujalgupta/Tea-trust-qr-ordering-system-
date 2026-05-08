@@ -133,11 +133,28 @@ def authenticate_user(username, password):
     return user
 
 
+def _clean_optional_email(value):
+    value = (value or "").strip().lower()
+    return value or None
+
+
 def ensure_admin_user(username, password, email=None):
+    username = (username or "").strip()
+    email = _clean_optional_email(email)
     user = User.query.filter_by(username=username).first()
+    if not user and email:
+        user = User.query.filter_by(email=email).first()
     if user:
+        changed = False
         if not user.role:
             user.role = "owner"
+            changed = True
+        if email and not user.email:
+            email_owner = User.query.filter_by(email=email).first()
+            if not email_owner or email_owner.id == user.id:
+                user.email = email
+                changed = True
+        if changed:
             db.session.commit()
         return user, False
 

@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from app import create_app
 from app.extensions import db
-from app.models import CafeTable, Category, MenuItem
+from app.models import CafeTable, Category, MenuItem, User
 from app.services.sample_data import seed_sample_data
 
 
@@ -61,3 +61,29 @@ def test_seed_data_preserves_admin_menu_and_table_changes():
 
         assert CafeTable.query.filter_by(table_number=20).first().is_active is True
         assert CafeTable.query.filter_by(table_number=1).first().is_active is False
+
+
+def test_seed_data_reuses_existing_admin_email_after_username_change():
+    app = create_app("testing")
+
+    with app.app_context():
+        db.create_all()
+
+        renamed_admin = User(
+            username="owner",
+            email=app.config["ADMIN_EMAIL"],
+            is_admin=True,
+            role="owner",
+            active=True,
+        )
+        renamed_admin.set_password("StrongerPass123")
+        db.session.add(renamed_admin)
+        db.session.commit()
+        admin_id = renamed_admin.id
+
+        seed_sample_data(app.config)
+
+        assert User.query.filter_by(email=app.config["ADMIN_EMAIL"]).count() == 1
+        admin = db.session.get(User, admin_id)
+        assert admin.username == "owner"
+        assert admin.check_password("StrongerPass123")
