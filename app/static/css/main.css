@@ -2111,6 +2111,7 @@ p {
 
 .staff-profiles-panel {
   margin-bottom: 18px;
+  overflow-x: auto;
 }
 
 .broadcast-panel {
@@ -2144,11 +2145,13 @@ p {
   grid-template-columns: minmax(140px, 1fr) minmax(180px, 1fr) minmax(150px, 0.8fr) minmax(180px, 1fr) auto;
   align-items: center;
   margin-bottom: 14px;
+  min-width: 980px;
 }
 
 .staff-profile-list {
   display: grid;
   gap: 12px;
+  min-width: 980px;
 }
 
 .staff-profile-row {
@@ -2161,6 +2164,7 @@ p {
 .staff-profile-edit-grid {
   grid-template-columns: minmax(130px, 1fr) minmax(170px, 1fr) minmax(150px, 0.8fr) minmax(170px, 1fr) auto auto;
   align-items: center;
+  min-width: 820px;
 }
 
 .analytics-metrics {
@@ -3050,6 +3054,12 @@ p {
   .staff-profile-edit-grid,
   .table-edit-grid {
     grid-template-columns: 1fr;
+  }
+
+  .staff-profile-form,
+  .staff-profile-list,
+  .staff-profile-edit-grid {
+    min-width: 0;
   }
 
   .order-detail-grid,
