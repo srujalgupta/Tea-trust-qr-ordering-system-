@@ -3,7 +3,96 @@ const pageId = document.body.dataset.page || "";
 const cafeName = document.body.dataset.cafeName?.trim()
   || document.querySelector(".brand strong, .admin-brand strong")?.textContent?.trim()
   || "Tea Trust Cafe";
-const currentOrderKey = "qrCafeCurrentOrder";
+const currentOrderBaseKey = "qrCafeCurrentOrder";
+const adminStoreKey = "qrCafeAdminStoreId";
+const storeOptions = (() => {
+  try {
+    return JSON.parse(document.getElementById("storeOptionsJson")?.textContent || "[]");
+  } catch {
+    return [];
+  }
+})();
+const bodyStore = {
+  id: document.body.dataset.storeId || "",
+  slug: document.body.dataset.storeSlug || "",
+};
+
+function storeById(storeId) {
+  return storeOptions.find((store) => String(store.id) === String(storeId));
+}
+
+function storeBySlug(storeSlug) {
+  return storeOptions.find((store) => String(store.slug) === String(storeSlug));
+}
+
+function selectedStore() {
+  const isAdminPage = pageId.startsWith("admin-");
+  if (isAdminPage) {
+    const saved = localStorage.getItem(adminStoreKey);
+    const savedStore = storeById(saved);
+    if (savedStore) return savedStore;
+  }
+  return storeById(bodyStore.id) || storeBySlug(bodyStore.slug) || storeOptions[0] || null;
+}
+
+function selectedStoreId() {
+  return selectedStore()?.id || bodyStore.id || "";
+}
+
+function selectedStoreSlug() {
+  return selectedStore()?.slug || bodyStore.slug || "";
+}
+
+function selectedStoreName() {
+  return selectedStore()?.name || "Store";
+}
+
+function scopedStorageKey(baseKey) {
+  return `${baseKey}:${selectedStoreId() || selectedStoreSlug() || "default"}`;
+}
+
+function urlWithStore(path, options = {}) {
+  const url = new URL(path, window.location.origin);
+  const storeRef = options.store || selectedStoreSlug() || selectedStoreId();
+  if (storeRef) {
+    url.searchParams.set("store", storeRef);
+  }
+  if (options.tableId) {
+    url.searchParams.set("table", options.tableId);
+  }
+  return `${url.pathname}${url.search}`;
+}
+
+function setupStoreSelector() {
+  document.querySelectorAll("[data-store-select]").forEach((select) => {
+    const mode = select.dataset.storeSelect;
+    const active = selectedStore();
+    if (active) {
+      select.value = String(active.id);
+    }
+
+    select.addEventListener("change", () => {
+      const option = select.selectedOptions[0];
+      const storeId = select.value;
+      const storeSlug = option?.dataset.slug || storeById(storeId)?.slug || "";
+      if (mode === "admin") {
+        localStorage.setItem(adminStoreKey, storeId);
+        window.location.reload();
+        return;
+      }
+      const nextUrl = new URL(window.location.href);
+      if (storeSlug) {
+        nextUrl.searchParams.set("store", storeSlug);
+      }
+      nextUrl.searchParams.delete("table");
+      window.location.href = `${nextUrl.pathname}${nextUrl.search}`;
+    });
+  });
+
+  document.querySelectorAll("[data-storefront-link]").forEach((link) => {
+    link.href = urlWithStore("/menu");
+  });
+}
 
 function filenamePart(value) {
   return String(value || "qr-cafe")
@@ -49,13 +138,17 @@ function orderApiUrl(order) {
   return `/api/v1/orders/${encodeURIComponent(id)}?key=${encodeURIComponent(key)}`;
 }
 
+function currentOrderKeyFor(storeId = selectedStoreId()) {
+  return `${currentOrderBaseKey}:${storeId || "default"}`;
+}
+
 function readCurrentOrder() {
   try {
-    const order = JSON.parse(localStorage.getItem(currentOrderKey) || "null");
+    const order = JSON.parse(localStorage.getItem(currentOrderKeyFor()) || "null");
     if (!orderStatusUrl(order)) return null;
     return order;
   } catch {
-    localStorage.removeItem(currentOrderKey);
+    localStorage.removeItem(currentOrderKeyFor());
     return null;
   }
 }
@@ -64,9 +157,11 @@ function saveCurrentOrder(order) {
   const id = order?.id;
   const orderNumber = order?.order_number || order?.orderKey || order?.key;
   if (!id || !orderNumber) return;
-  localStorage.setItem(currentOrderKey, JSON.stringify({
+  const storeId = order.store_id ?? order.storeId ?? selectedStoreId() ?? "";
+  localStorage.setItem(currentOrderKeyFor(storeId), JSON.stringify({
     id,
     order_number: orderNumber,
+    store_id: storeId,
     table_id: order.table_id ?? order.tableId ?? null,
     table_label: order.table_label || "",
     status: order.status || "pending",
@@ -78,7 +173,7 @@ function saveCurrentOrder(order) {
 }
 
 function clearCurrentOrder() {
-  localStorage.removeItem(currentOrderKey);
+  localStorage.removeItem(currentOrderKeyFor());
 }
 
 function currentOrderActionLabel(order) {
@@ -87,17 +182,18 @@ function currentOrderActionLabel(order) {
   return "Track current order";
 }
 
-function currentOrderBelongsToTable(order, tableId) {
+function currentOrderBelongsToTable(order, tableId, storeId = selectedStoreId()) {
+  if (storeId && order?.store_id && String(order.store_id) !== String(storeId)) return false;
   if (!tableId || !order?.table_id) return true;
   return String(order.table_id) === String(tableId);
 }
 
-function setupCurrentOrderLinks(linkIds, tableId = null) {
+function setupCurrentOrderLinks(linkIds, tableId = null, storeId = selectedStoreId()) {
   const links = linkIds.map((id) => document.getElementById(id)).filter(Boolean);
   if (!links.length) return;
 
   function render(order) {
-    const href = order && currentOrderBelongsToTable(order, tableId) ? orderStatusUrl(order) : "";
+    const href = order && currentOrderBelongsToTable(order, tableId, storeId) ? orderStatusUrl(order) : "";
     links.forEach((link) => {
       if (!href) {
         link.hidden = true;
@@ -351,6 +447,8 @@ function initCustomerMenu() {
     hero.style.setProperty("--poster", cssUrl(hero.dataset.posterUrl));
   }
 
+  const storeId = hero.dataset.storeId || selectedStoreId();
+  const storeSlug = hero.dataset.storeSlug || selectedStoreSlug();
   const tableId = hero.dataset.tableId || null;
   const menuList = document.getElementById("menuList");
   const searchInput = document.getElementById("menuSearch");
@@ -369,8 +467,8 @@ function initCustomerMenu() {
   ].filter(Boolean);
   const menuItemTotalEl = document.getElementById("menuItemTotal");
   const bestsellerTotalEl = document.getElementById("bestsellerTotal");
-  const cartKey = "qrCafeCart";
-  const tableKey = "qrCafeTableId";
+  const cartKey = scopedStorageKey("qrCafeCart");
+  const tableKey = scopedStorageKey("qrCafeTableId");
 
   let categories = [];
   let items = [];
@@ -380,7 +478,7 @@ function initCustomerMenu() {
   if (tableId) {
     localStorage.setItem(tableKey, tableId);
   }
-  setupCurrentOrderLinks(["menuCurrentOrderLink"], tableId || localStorage.getItem(tableKey) || null);
+  setupCurrentOrderLinks(["menuCurrentOrderLink"], tableId || localStorage.getItem(tableKey) || null, storeId);
 
   function saveCart() {
     localStorage.setItem(cartKey, JSON.stringify(cart));
@@ -406,12 +504,8 @@ function initCustomerMenu() {
   }
 
   function customerPageUrl(path) {
-    const url = new URL(path, window.location.origin);
     const savedTableId = tableId || localStorage.getItem(tableKey) || "";
-    if (savedTableId) {
-      url.searchParams.set("table", savedTableId);
-    }
-    return `${url.pathname}${url.search}`;
+    return urlWithStore(path, { store: storeSlug || storeId, tableId: savedTableId });
   }
 
   function goToCustomerPage(path) {
@@ -536,7 +630,7 @@ function initCustomerMenu() {
   }
 
   async function loadMenu() {
-    const payload = await apiFetch("/api/v1/menu");
+    const payload = await apiFetch(urlWithStore("/api/v1/menu", { store: storeSlug || storeId }));
     categories = payload.categories;
     items = payload.items;
     if (!openCategories.size) {
@@ -613,10 +707,12 @@ function initCustomerCartPage() {
   const shell = document.querySelector(".cart-page-shell");
   if (!shell) return;
 
-  const cartKey = "qrCafeCart";
-  const tableKey = "qrCafeTableId";
+  const storeId = shell.dataset.storeId || selectedStoreId();
+  const storeSlug = shell.dataset.storeSlug || selectedStoreSlug();
+  const cartKey = scopedStorageKey("qrCafeCart");
+  const tableKey = scopedStorageKey("qrCafeTableId");
   const customerKey = "qrCafeCustomer";
-  const itemNotesKey = "qrCafeItemNotes";
+  const itemNotesKey = scopedStorageKey("qrCafeItemNotes");
   const cartItemsEl = document.getElementById("cartItems");
   const cartItemSummaryEl = document.getElementById("cartItemSummary");
   const cartSubtotalEl = document.getElementById("cartSubtotal");
@@ -635,14 +731,10 @@ function initCustomerCartPage() {
     localStorage.setItem(tableKey, shell.dataset.tableId);
     tableId = shell.dataset.tableId;
   }
-  setupCurrentOrderLinks(["cartCurrentOrderLink"], tableId);
+  setupCurrentOrderLinks(["cartCurrentOrderLink"], tableId, storeId);
 
   function customerPageUrl(path) {
-    const url = new URL(path, window.location.origin);
-    if (tableId) {
-      url.searchParams.set("table", tableId);
-    }
-    return `${url.pathname}${url.search}`;
+    return urlWithStore(path, { store: storeSlug || storeId, tableId });
   }
 
   document.querySelectorAll("#continueMenuLink, #cartBackToMenu").forEach((link) => {
@@ -746,6 +838,7 @@ function initCustomerCartPage() {
         method: "POST",
         body: {
           table_id: tableId,
+          store_id: storeId,
           customer_name: customerName,
           customer_phone: customerPhone,
           marketing_opt_in: marketingOptIn,
@@ -816,7 +909,7 @@ function initCustomerCartPage() {
   });
   placeOrderButton?.addEventListener("click", placeOrder);
 
-  apiFetch("/api/v1/menu").then((payload) => {
+  apiFetch(urlWithStore("/api/v1/menu", { store: storeSlug || storeId })).then((payload) => {
     items = payload.items;
     const savedCustomer = JSON.parse(localStorage.getItem(customerKey) || "{}");
     if (checkoutMode) {
@@ -883,6 +976,7 @@ function receiptHtml(order, options = {}) {
       <div class="order-detail-grid receipt-meta-grid">
         <p><strong>Status</strong><span>${escapeHtml(order.status.replaceAll("_", " "))}</span></p>
         <p><strong>Payment</strong><span>${escapeHtml(paymentLabel(order))}</span></p>
+        <p><strong>Store</strong><span>${escapeHtml(order.store_name || selectedStoreName())}</span></p>
         <p><strong>Table</strong><span>${escapeHtml(order.table_label || "Takeaway")}</span></p>
         <p><strong>Total</strong><span>${money(order.total_amount)}</span></p>
         ${customerRows}
@@ -961,6 +1055,7 @@ function whatsappConfirmationUrl(order) {
   const items = order.items.map((item) => `${item.item_name} x ${item.quantity}`).join(", ");
   const message = [
     `${cafeName} order confirmation`,
+    `Store: ${order.store_name || selectedStoreName()}`,
     `Order: ${order.order_number}`,
     token,
     table,
@@ -990,6 +1085,7 @@ function initOrderStatus() {
   saveCurrentOrder({
     id: orderId,
     order_number: orderKey,
+    store_id: panel.dataset.storeId || selectedStoreId(),
     table_id: panel.dataset.tableId || null,
     status: "pending",
   });
@@ -1077,7 +1173,8 @@ function initAdminDashboard() {
   const counterOrderNotes = document.getElementById("counterOrderNotes");
   const counterOrderMessage = document.getElementById("counterOrderMessage");
   const statusValues = ["pending", "preparing", "ready", "completed", "cancelled"];
-  const seenOrdersKey = "qrCafeSeenOrders";
+  const activeStoreId = selectedStoreId();
+  const seenOrdersKey = scopedStorageKey("qrCafeSeenOrders");
   let orders = [];
   let tables = [];
   let menuItems = [];
@@ -1225,6 +1322,7 @@ function initAdminDashboard() {
   }
 
   function alertForNewOrder(order) {
+    if (activeStoreId && order.store_id && String(order.store_id) !== String(activeStoreId)) return;
     knownOrderIds.add(Number(order.id));
     playRepeatingKitchenTone(5000);
     announceNewOrder();
@@ -1367,6 +1465,7 @@ function initAdminDashboard() {
         method: "POST",
         body: {
           table_id: counterTableSelect.value,
+          store_id: activeStoreId,
           customer_name: counterCustomerName?.value || "Counter Guest",
           customer_phone: counterCustomerPhone?.value || "",
           notes: counterOrderNotes?.value || "Counter order",
@@ -1694,9 +1793,9 @@ function initAdminDashboard() {
     isLoading = true;
     try {
       const [orderPayload, tablePayload, menuPayload] = await Promise.all([
-        apiFetch("/api/v1/admin/orders"),
-        apiFetch("/api/v1/admin/tables"),
-        menuItems.length ? Promise.resolve({ items: menuItems }) : apiFetch("/api/v1/menu"),
+        apiFetch(urlWithStore("/api/v1/admin/orders")),
+        apiFetch(urlWithStore("/api/v1/admin/tables")),
+        menuItems.length ? Promise.resolve({ items: menuItems }) : apiFetch(urlWithStore("/api/v1/menu")),
       ]);
       const nextSignature = JSON.stringify({ orders: orderPayload, tables: tablePayload });
       if (nextSignature === dashboardDataSignature) {
@@ -1777,12 +1876,13 @@ function initAdminDashboard() {
   const socket = connectSocket();
   if (socket) {
     socket.on("connect", () => {
-      socket.emit("admin_join");
+      socket.emit("admin_join", { store_id: activeStoreId });
     });
     if (socket.connected) {
-      socket.emit("admin_join");
+      socket.emit("admin_join", { store_id: activeStoreId });
     }
     socket.on("order_created", (order) => {
+      if (activeStoreId && order.store_id && String(order.store_id) !== String(activeStoreId)) return;
       alertForNewOrder(order);
       dashboardDataSignature = "";
       load();
@@ -1850,7 +1950,7 @@ function initKitchenDisplay() {
   }
 
   async function load() {
-    const orders = await apiFetch("/api/v1/admin/orders");
+    const orders = await apiFetch(urlWithStore("/api/v1/admin/orders"));
     const active = orders.filter((order) => ["pending", "preparing", "ready"].includes(order.status));
     const nextSignature = JSON.stringify({ active });
     if (nextSignature === signature) return;
@@ -1871,8 +1971,12 @@ function initKitchenDisplay() {
 
   const socket = connectSocket();
   if (socket) {
-    socket.emit("admin_join");
-    socket.on("order_created", load);
+    socket.emit("admin_join", { store_id: selectedStoreId() });
+    socket.on("order_created", (order) => {
+      const storeId = selectedStoreId();
+      if (storeId && order.store_id && String(order.store_id) !== String(storeId)) return;
+      load();
+    });
     socket.on("order_updated", load);
   }
   setInterval(load, 5000);
@@ -1916,6 +2020,11 @@ function initAdminAnalytics() {
   const dailyChart = document.getElementById("analyticsDailyChart");
   const topItems = document.getElementById("analyticsTopItems");
   const hourly = document.getElementById("analyticsHourly");
+  const ordersExportLink = document.getElementById("ordersExportLink");
+
+  if (ordersExportLink) {
+    ordersExportLink.href = urlWithStore(ordersExportLink.getAttribute("href") || "/api/v1/admin/export/orders.csv");
+  }
 
   function render(payload) {
     document.getElementById("analyticsRevenue").textContent = adminMoney(payload.revenue);
@@ -1953,7 +2062,7 @@ function initAdminAnalytics() {
   }
 
   async function load() {
-    const payload = await apiFetch(`/api/v1/admin/analytics?days=${range.value}`);
+    const payload = await apiFetch(urlWithStore(`/api/v1/admin/analytics?days=${range.value}`));
     render(payload);
   }
 
@@ -1977,7 +2086,7 @@ function initAdminMenu() {
   let items = [];
 
   async function load() {
-    const payload = await apiFetch("/api/v1/menu?include_unavailable=1");
+    const payload = await apiFetch(urlWithStore("/api/v1/menu?include_unavailable=1"));
     categories = payload.categories;
     items = payload.items;
     categorySelect.innerHTML = categories.map((category) => (
@@ -2050,7 +2159,7 @@ function initAdminMenu() {
   itemForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = new FormData(itemForm);
-    await apiFetch("/api/v1/admin/menu-items", {
+    await apiFetch(urlWithStore("/api/v1/admin/menu-items"), {
       method: "POST",
       body: {
         category_id: form.get("category_id"),
@@ -2070,7 +2179,7 @@ function initAdminMenu() {
   categoryForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = new FormData(categoryForm);
-    await apiFetch("/api/v1/admin/categories", {
+    await apiFetch(urlWithStore("/api/v1/admin/categories"), {
       method: "POST",
       body: {
         name: form.get("name"),
@@ -2087,7 +2196,7 @@ function initAdminMenu() {
     if (save) {
       const row = save.closest(".admin-row");
       const itemId = save.dataset.saveItem;
-      await apiFetch(`/api/v1/admin/menu-items/${itemId}`, {
+      await apiFetch(urlWithStore(`/api/v1/admin/menu-items/${itemId}`), {
         method: "PATCH",
         body: collectRow(row),
       });
@@ -2095,7 +2204,7 @@ function initAdminMenu() {
       if (image) {
         const form = new FormData();
         form.append("image", image);
-        await apiFetch(`/api/v1/admin/menu-items/${itemId}/image`, {
+        await apiFetch(urlWithStore(`/api/v1/admin/menu-items/${itemId}/image`), {
           method: "POST",
           body: form,
         });
@@ -2103,7 +2212,7 @@ function initAdminMenu() {
       await load();
     }
     if (del && window.confirm("Delete this menu item?")) {
-      await apiFetch(`/api/v1/admin/menu-items/${del.dataset.deleteItem}`, { method: "DELETE" });
+      await apiFetch(urlWithStore(`/api/v1/admin/menu-items/${del.dataset.deleteItem}`), { method: "DELETE" });
       await load();
     }
   });
@@ -2302,7 +2411,7 @@ function initAdminTables() {
   }
 
   async function load() {
-    tableRows = await apiFetch("/api/v1/admin/tables?include_inactive=1");
+    tableRows = await apiFetch(urlWithStore("/api/v1/admin/tables?include_inactive=1"));
     list.innerHTML = tableRows.map(tableCardHtml).join("") || `<p class="helper-text">No tables found.</p>`;
   }
 
@@ -2328,7 +2437,7 @@ function initAdminTables() {
     }
     if (saveButton) {
       const row = saveButton.closest("[data-table-row]");
-      await apiFetch(`/api/v1/admin/tables/${saveButton.dataset.saveTable}`, {
+      await apiFetch(urlWithStore(`/api/v1/admin/tables/${saveButton.dataset.saveTable}`), {
         method: "PATCH",
         body: {
           table_number: row.querySelector('[name="table_number"]').value,
@@ -2347,7 +2456,7 @@ function initAdminTables() {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = new FormData(form);
-    await apiFetch("/api/v1/admin/tables", {
+    await apiFetch(urlWithStore("/api/v1/admin/tables"), {
       method: "POST",
       body: {
         table_number: data.get("table_number"),
@@ -2421,7 +2530,7 @@ function initAdminSettings() {
   async function load() {
     const [staffPayload, contactPayload] = await Promise.all([
       apiFetch("/api/v1/admin/staff"),
-      apiFetch("/api/v1/admin/customers?marketing_only=1"),
+      apiFetch(urlWithStore("/api/v1/admin/customers?marketing_only=1")),
     ]);
     roles = staffPayload.roles || [];
     staff = staffPayload.staff || [];
@@ -2435,7 +2544,7 @@ function initAdminSettings() {
     broadcastSendButton.disabled = true;
     broadcastStatus.textContent = "Sending...";
     try {
-      const result = await apiFetch("/api/v1/admin/broadcasts", {
+      const result = await apiFetch(urlWithStore("/api/v1/admin/broadcasts"), {
         method: "POST",
         body: {
           message: data.get("message"),
@@ -2513,6 +2622,7 @@ function initAdminSettings() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  setupStoreSelector();
   if (pageId === "customer-menu") initCustomerMenu();
   if (pageId === "customer-cart" || pageId === "customer-checkout") initCustomerCartPage();
   if (pageId === "order-status") initOrderStatus();

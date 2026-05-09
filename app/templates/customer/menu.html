@@ -6,6 +6,8 @@
 {% block content %}
   <section
     class="menu-hero"
+    data-store-id="{{ store.id if store else '' }}"
+    data-store-slug="{{ store.slug if store else '' }}"
     data-table-id="{{ table.id if table else '' }}"
     data-poster-url="{{ banner_poster_url or '' }}"
   >
@@ -20,7 +22,7 @@
       <div class="menu-hero-brand">
         <img class="menu-hero-logo" src="{{ url_for('static', filename='brand/tea_trust_logo.png') }}" alt="{{ cafe.name }} logo">
       </div>
-      <p class="eyebrow">{% if table %}Ordering for {{ table.label }}{% else %}{{ cafe.subtitle }}{% endif %}</p>
+      <p class="eyebrow">{% if table %}{{ store.name }} - {{ table.label }}{% elif store %}{{ store.name }}{% else %}{{ cafe.subtitle }}{% endif %}</p>
       <h1>{{ cafe.name }}</h1>
       <p>{{ cafe.tagline }}. Choose your favorites and track your token live. Call {{ cafe.phone }}.</p>
       <div class="menu-hero-actions">
@@ -35,6 +37,10 @@
     <div>
       <span>Table</span>
       <strong>{% if table %}{{ table.label }}{% else %}Takeaway{% endif %}</strong>
+    </div>
+    <div>
+      <span>Store</span>
+      <strong>{{ store.name if store else 'Store 1' }}</strong>
     </div>
     <div>
       <span>Menu</span>

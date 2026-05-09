@@ -8,6 +8,13 @@ class MenuItem(TimestampMixin, db.Model):
     __tablename__ = "menu_items"
 
     id = db.Column(db.Integer, primary_key=True)
+    store_id = db.Column(
+        db.Integer,
+        db.ForeignKey("stores.id", ondelete="CASCADE"),
+        nullable=False,
+        default=1,
+        index=True,
+    )
     category_id = db.Column(
         db.Integer,
         db.ForeignKey("categories.id", ondelete="RESTRICT"),
@@ -23,12 +30,14 @@ class MenuItem(TimestampMixin, db.Model):
     is_bestseller = db.Column(db.Boolean, nullable=False, default=False, index=True)
     tags = db.Column(db.String(255), nullable=True)
 
+    store = db.relationship("Store", back_populates="menu_items")
     category = db.relationship("Category", back_populates="menu_items")
     order_items = db.relationship("OrderItem", back_populates="menu_item")
 
     __table_args__ = (
         db.CheckConstraint("price >= 0", name="ck_menu_items_price_non_negative"),
         db.Index("ix_menu_items_category_available", "category_id", "is_available"),
+        db.Index("ix_menu_items_store_available", "store_id", "is_available"),
     )
 
     def normalized_price(self):

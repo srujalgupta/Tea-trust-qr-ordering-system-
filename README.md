@@ -5,6 +5,8 @@ Production-oriented QR cafe ordering system built with Flask, SQLAlchemy, Flask-
 ## Features
 
 - Customer menu at `/menu?table=5`
+- Store/location selector for Store 1 and Store 2, with separate menus, prices,
+  tables, orders, tokens, analytics, and customer contacts per store
 - Six active table QR links are seeded by default, and more tables can be added from `/admin/tables`
 - Mobile-first sticky category tabs, search, cart, lazy item images, and video banner support
 - Photo-style menu image fallbacks with uploadable item photos in admin
@@ -58,10 +60,12 @@ Default dev admin from `.env.example`:
 
 Change those before real use.
 
-The default cafe setup seeds six tables. Add more tables from `/admin/tables`; each
-new table automatically gets a menu link, local QR image, and printable poster.
+The default cafe setup seeds Store 1 and Store 2. Each store gets its own copy of
+the starter menu and six tables, so changing an item price or table in one store
+does not change the other. Add more tables from `/admin/tables`; each new table
+automatically gets a store-aware menu link, local QR image, and printable poster.
 Use `CAFE_TABLE_COUNT` only when you want to change how many tables are seeded by
-default.
+default per store.
 
 ## PostgreSQL
 
@@ -96,14 +100,15 @@ order is completed by admin.
 
 - `GET /health`
 - `GET /api/v1/health`
-- `GET /api/v1/menu`
+- `GET /api/v1/stores`
+- `GET /api/v1/menu?store=store-1`
 - `POST /api/v1/orders`
 - `GET /api/v1/orders/<order_id>`
-- `GET /api/v1/admin/orders`
+- `GET /api/v1/admin/orders?store=store-1`
 - `PATCH /api/v1/admin/orders/<order_id>/status`
-- `GET /api/v1/admin/analytics`
-- `GET /api/v1/admin/export/orders.csv`
-- `GET /api/v1/admin/export/menu.csv`
+- `GET /api/v1/admin/analytics?store=store-1`
+- `GET /api/v1/admin/export/orders.csv?store=store-1`
+- `GET /api/v1/admin/export/menu.csv?store=store-1`
 - `GET /api/v1/admin/export/customers.csv?marketing_only=1`
 - `GET /api/v1/admin/customers?marketing_only=1`
 - `POST /api/v1/admin/broadcasts`
@@ -117,10 +122,13 @@ order is completed by admin.
 - `PATCH /api/v1/admin/menu-items/<item_id>`
 - `DELETE /api/v1/admin/menu-items/<item_id>`
 - `POST /api/v1/admin/menu-items/<item_id>/image`
-- `GET /api/v1/admin/tables`
+- `GET /api/v1/admin/tables?store=store-1`
 - `POST /api/v1/admin/tables`
 - `PATCH /api/v1/admin/tables/<table_id>`
 - `GET /qr/table/<table_id>.png`
+
+Most customer and admin endpoints accept `store` or `store_id`. If omitted, the
+app uses Store 1.
 
 Unsafe API requests require the `X-CSRFToken` header.
 

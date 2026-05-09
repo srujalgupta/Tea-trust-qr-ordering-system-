@@ -14,6 +14,7 @@ from .payment_service import create_cash_payment
 from .pos_service import send_order_to_pos
 from .realtime_service import emit_order_created, emit_order_updated
 from .serializers import serialize_order
+from .store_service import get_store, validate_store_match
 from .token_service import generate_daily_token_for_order, sync_token_status
 
 
@@ -46,7 +47,11 @@ def _normalize_items(items):
     return quantities, notes
 
 
-def _get_active_table(table_id):
+def _resolve_store_reference(data):
+    return data.get("store_id") or data.get("store") or data.get("location_id") or data.get("location")
+
+
+def _get_active_table(table_id, store=None):
     if table_id in (None, "", 0):
         return None
     try:
@@ -56,12 +61,15 @@ def _get_active_table(table_id):
     table = db.session.get(CafeTable, table_id)
     if not table or not table.is_active:
         raise ValidationError("Selected table is not available.")
+    if store is not None:
+        validate_store_match(table.store_id, store, "Selected table belongs to a different store.")
     return table
 
 
-def _get_menu_items(item_quantities):
+def _get_menu_items(item_quantities, store):
     items = (
         MenuItem.query.options(selectinload(MenuItem.category))
+        .filter(MenuItem.store_id == store.id)
         .filter(MenuItem.id.in_(item_quantities.keys()))
         .all()
     )
@@ -82,8 +90,11 @@ def _get_menu_items(item_quantities):
 
 def create_order(data, config):
     item_quantities, item_notes = _normalize_items(data.get("items"))
-    menu_items = _get_menu_items(item_quantities)
     table = _get_active_table(data.get("table_id"))
+    store = table.store if table else get_store(_resolve_store_reference(data))
+    if table:
+        validate_store_match(table.store_id, store, "Selected table belongs to a different store.")
+    menu_items = _get_menu_items(item_quantities, store)
 
     payment_method = (data.get("payment_method") or "cash").strip().lower()
     if payment_method != "cash":
@@ -106,6 +117,7 @@ def create_order(data, config):
 
     order = Order(
         order_number=_order_number(),
+        store=store,
         table=table,
         customer_name=(data.get("customer_name") or "").strip()[:120],
         customer_phone=customer_phone[:30],
@@ -151,6 +163,7 @@ def create_order(data, config):
 def get_order(order_id):
     order = (
         Order.query.options(
+            selectinload(Order.store),
             selectinload(Order.items),
             selectinload(Order.payments),
             selectinload(Order.daily_token),
@@ -172,13 +185,17 @@ def verify_customer_order_access(order, lookup_key):
     return order
 
 
-def list_orders(status=None):
+def list_orders(status=None, store=None):
     query = Order.query.options(
+        selectinload(Order.store),
         selectinload(Order.items),
         selectinload(Order.payments),
         selectinload(Order.daily_token),
         selectinload(Order.table),
     )
+    if store is not None:
+        store = get_store(store) if not hasattr(store, "id") else store
+        query = query.filter(Order.store_id == store.id)
     if status:
         query = query.filter(Order.status == status)
     return query.order_by(Order.created_at.desc()).all()

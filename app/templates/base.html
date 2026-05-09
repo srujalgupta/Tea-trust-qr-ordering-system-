@@ -5,9 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}{{ cafe.name }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=26">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=27">
   </head>
-  <body data-page="{% block page_id %}{% endblock %}" data-cafe-name="{{ cafe.name }}">
+  {% set selected_store = store if store is defined and store else default_store %}
+  <body
+    data-page="{% block page_id %}{% endblock %}"
+    data-cafe-name="{{ cafe.name }}"
+    data-store-id="{{ selected_store.id if selected_store else '' }}"
+    data-store-slug="{{ selected_store.slug if selected_store else '' }}"
+  >
     {% if current_user.is_authenticated and current_user.is_admin %}
       {% set admin_home = url_for('admin.dashboard') if current_user.can('dashboard:view') else (url_for('admin.kitchen_display') if current_user.can('orders:update') else (url_for('admin.menu_manager') if current_user.can('menu:manage') else url_for('admin.settings'))) %}
       <div class="admin-app">
@@ -61,7 +67,7 @@
                 Settings
               </a>
             {% endif %}
-            <a class="admin-nav-link" href="{{ url_for('customer.menu') }}">
+            <a class="admin-nav-link" data-storefront-link href="{{ url_for('customer.menu', store=selected_store.slug) if selected_store else url_for('customer.menu') }}">
               <span class="nav-icon">V</span>
               Storefront
             </a>
@@ -82,6 +88,16 @@
               <strong>{% block admin_title %}Dashboard{% endblock %}</strong>
             </div>
             <div class="admin-userbar">
+              {% if store_options|length > 1 %}
+                <label class="store-switcher admin-store-switcher">
+                  <span>Store</span>
+                  <select id="storeSelect" data-store-select="admin" aria-label="Select admin store">
+                    {% for option in store_options %}
+                      <option value="{{ option.id }}" data-slug="{{ option.slug }}">{{ option.name }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+              {% endif %}
               <span class="date-pill">{{ today_label }}</span>
               <span class="admin-avatar">{{ current_user.username[:1]|upper }}</span>
               <span class="admin-user-text">
@@ -105,18 +121,30 @@
     {% else %}
       {% set active_table = table if table is defined and table else none %}
       <header class="topbar">
-        <a class="brand" href="{{ url_for('customer.menu', table=active_table.id) if active_table else url_for('customer.menu') }}">
+        <a class="brand" href="{{ url_for('customer.menu', store=selected_store.slug, table=active_table.id) if active_table and selected_store else (url_for('customer.menu', store=selected_store.slug) if selected_store else url_for('customer.menu')) }}">
           <img class="brand-mark" src="{{ url_for('static', filename='brand/tea_trust_logo.png') }}" alt="" aria-hidden="true">
           <span>
             <strong>{{ cafe.name }}</strong>
             {% if active_table %}
-              <small>Ordering for {{ active_table.label }}</small>
+              <small>{{ selected_store.name if selected_store else 'Store' }} - {{ active_table.label }}</small>
+            {% elif selected_store %}
+              <small>{{ selected_store.name }}</small>
             {% endif %}
           </span>
         </a>
+        {% if store_options|length > 1 %}
+          <label class="store-switcher customer-store-switcher">
+            <span>Store</span>
+            <select id="storeSelect" data-store-select="customer" aria-label="Select store">
+              {% for option in store_options %}
+                <option value="{{ option.id }}" data-slug="{{ option.slug }}" {% if selected_store and option.id == selected_store.id %}selected{% endif %}>{{ option.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        {% endif %}
         <nav class="topnav">
-          <a href="{{ url_for('customer.menu', table=active_table.id) if active_table else url_for('customer.menu') }}">Menu</a>
-          <a href="{{ url_for('customer.cart', table=active_table.id) if active_table else url_for('customer.cart') }}">Cart</a>
+          <a href="{{ url_for('customer.menu', store=selected_store.slug, table=active_table.id) if active_table and selected_store else (url_for('customer.menu', store=selected_store.slug) if selected_store else url_for('customer.menu')) }}">Menu</a>
+          <a href="{{ url_for('customer.cart', store=selected_store.slug, table=active_table.id) if active_table and selected_store else (url_for('customer.cart', store=selected_store.slug) if selected_store else url_for('customer.cart')) }}">Cart</a>
           <a href="{{ url_for('admin.login') }}">Admin</a>
         </nav>
       </header>
@@ -140,8 +168,9 @@
       </div>
     {% endif %}
 
+    <script id="storeOptionsJson" type="application/json">{{ store_options_payload|tojson }}</script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" defer></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=31" defer></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=32" defer></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

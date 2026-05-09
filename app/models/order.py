@@ -8,6 +8,13 @@ class Order(TimestampMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     order_number = db.Column(db.String(40), nullable=False, unique=True, index=True)
+    store_id = db.Column(
+        db.Integer,
+        db.ForeignKey("stores.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=1,
+        index=True,
+    )
     table_id = db.Column(
         db.Integer,
         db.ForeignKey("tables.id", ondelete="SET NULL"),
@@ -25,6 +32,7 @@ class Order(TimestampMixin, db.Model):
     payment_status = db.Column(db.String(30), nullable=False, default="cash_pending", index=True)
     status = db.Column(db.String(30), nullable=False, default="pending", index=True)
 
+    store = db.relationship("Store", back_populates="orders")
     table = db.relationship("CafeTable", back_populates="orders")
     items = db.relationship(
         "OrderItem",
@@ -61,6 +69,7 @@ class Order(TimestampMixin, db.Model):
         db.CheckConstraint("total_amount >= 0", name="ck_orders_total_non_negative"),
         db.Index("ix_orders_status_created", "status", "created_at"),
         db.Index("ix_orders_table_created", "table_id", "created_at"),
+        db.Index("ix_orders_store_status_created", "store_id", "status", "created_at"),
     )
 
 

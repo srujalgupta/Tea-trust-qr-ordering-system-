@@ -5,6 +5,7 @@ from .daily_token import DailyToken
 from .menu_item import MenuItem
 from .order import Order, OrderItem
 from .payment import Payment
+from .store import Store
 from .user import User
 
 
@@ -17,5 +18,6 @@ __all__ = [
     "Order",
     "OrderItem",
     "Payment",
+    "Store",
     "User",
 ]

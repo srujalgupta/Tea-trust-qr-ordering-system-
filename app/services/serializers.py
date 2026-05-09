@@ -7,9 +7,21 @@ def money_to_float(value):
     return float(Decimal(value).quantize(Decimal("0.01")))
 
 
+def serialize_store(store):
+    return {
+        "id": store.id,
+        "name": store.name,
+        "slug": store.slug,
+        "address": store.address or "",
+        "phone": store.phone or "",
+        "is_active": store.is_active,
+    }
+
+
 def serialize_category(category):
     return {
         "id": category.id,
+        "store_id": category.store_id,
         "name": category.name,
         "description": category.description,
         "display_order": category.display_order,
@@ -26,6 +38,7 @@ def serialize_menu_item(item):
 
     return {
         "id": item.id,
+        "store_id": item.store_id,
         "category_id": item.category_id,
         "category_name": item.category.name if item.category else None,
         "name": item.name,
@@ -42,11 +55,18 @@ def serialize_menu_item(item):
 def serialize_table(table):
     return {
         "id": table.id,
+        "store_id": table.store_id,
+        "store_name": table.store.name if table.store else "",
+        "store_slug": table.store.slug if table.store else "",
         "table_number": table.table_number,
         "label": table.label or f"Table {table.table_number}",
         "qr_slug": table.qr_slug,
         "is_active": table.is_active,
-        "menu_url": f"/menu?table={table.id}",
+        "menu_url": (
+            f"/menu?store={table.store.slug}&table={table.id}"
+            if table.store
+            else f"/menu?table={table.id}"
+        ),
         "qr_image_url": f"/qr/table/{table.id}.png",
     }
 
@@ -66,6 +86,8 @@ def serialize_staff_profile(user):
 def serialize_customer_contact(contact):
     return {
         "id": contact.id,
+        "store_id": contact.store_id,
+        "store_name": contact.store.name if contact.store else "",
         "name": contact.name or "",
         "phone": contact.phone,
         "marketing_opt_in": contact.marketing_opt_in,
@@ -92,6 +114,9 @@ def serialize_order(order):
     return {
         "id": order.id,
         "order_number": order.order_number,
+        "store_id": order.store_id,
+        "store_name": order.store.name if order.store else "",
+        "store_slug": order.store.slug if order.store else "",
         "table_id": order.table_id,
         "table_label": order.table.label if order.table and order.table.label else (
             f"Table {order.table.table_number}" if order.table else None

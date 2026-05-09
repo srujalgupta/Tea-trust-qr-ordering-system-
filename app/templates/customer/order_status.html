@@ -4,7 +4,14 @@
 {% block page_id %}order-status{% endblock %}
 
 {% block content %}
-  <section class="token-panel order-success-panel" data-order-id="{{ order.id }}" data-order-key="{{ order.order_number }}" data-table-id="{{ order.table.id if order.table else '' }}">
+  <section
+    class="token-panel order-success-panel"
+    data-order-id="{{ order.id }}"
+    data-order-key="{{ order.order_number }}"
+    data-store-id="{{ order.store_id }}"
+    data-store-slug="{{ order.store.slug if order.store else '' }}"
+    data-table-id="{{ order.table.id if order.table else '' }}"
+  >
     <img class="success-logo" src="{{ url_for('static', filename='brand/tea_trust_logo.png') }}" alt="{{ cafe.name }} logo">
     <p class="eyebrow">Order {{ order.order_number }}</p>
     <h1 id="tokenNumber">
@@ -14,7 +21,7 @@
     <p id="estimatedWait" class="success-wait">Estimated wait: 12-18 minutes</p>
     <p id="paymentNotice" class="payment-notice">Pay at store. Please pay directly at the counter when collecting your order.</p>
     <div class="success-actions">
-      <a class="button primary" id="successBackToMenu" href="{{ url_for('customer.menu', table=order.table.id) if order.table else url_for('customer.menu') }}">Back to menu</a>
+      <a class="button primary" id="successBackToMenu" href="{{ url_for('customer.menu', store=order.store.slug, table=order.table.id) if order.table and order.store else (url_for('customer.menu', store=order.store.slug) if order.store else url_for('customer.menu')) }}">Back to menu</a>
       <button class="button" id="printBillButton" type="button">Print bill</button>
       <a class="button" id="whatsAppConfirmLink" href="#" target="_blank" rel="noopener">Share confirmation</a>
     </div>

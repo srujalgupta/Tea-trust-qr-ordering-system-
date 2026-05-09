@@ -7,6 +7,13 @@ class DailyToken(TimestampMixin, db.Model):
     __tablename__ = "daily_tokens"
 
     id = db.Column(db.Integer, primary_key=True)
+    store_id = db.Column(
+        db.Integer,
+        db.ForeignKey("stores.id", ondelete="CASCADE"),
+        nullable=False,
+        default=1,
+        index=True,
+    )
     token_date = db.Column(db.Date, nullable=False, index=True)
     token_number = db.Column(db.Integer, nullable=False)
     order_id = db.Column(
@@ -18,14 +25,20 @@ class DailyToken(TimestampMixin, db.Model):
     )
     status = db.Column(db.String(30), nullable=False, default="pending", index=True)
 
+    store = db.relationship("Store")
     order = db.relationship("Order", back_populates="daily_token")
 
     __table_args__ = (
-        db.UniqueConstraint("token_date", "token_number", name="uq_daily_tokens_date_number"),
+        db.UniqueConstraint(
+            "store_id",
+            "token_date",
+            "token_number",
+            name="uq_daily_tokens_store_date_number",
+        ),
         db.CheckConstraint("token_number > 0", name="ck_daily_tokens_number_positive"),
         db.CheckConstraint(
             f"status IN {TOKEN_STATUSES}",
             name="ck_daily_tokens_status",
         ),
-        db.Index("ix_daily_tokens_date_status", "token_date", "status"),
+        db.Index("ix_daily_tokens_store_date_status", "store_id", "token_date", "status"),
     )

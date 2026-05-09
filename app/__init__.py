@@ -190,6 +190,15 @@ def _register_error_handlers(app):
 def _register_template_context(app):
     @app.context_processor
     def inject_cafe_branding():
+        try:
+            from app.services.store_service import get_default_store, list_stores
+
+            store_options = list_stores()
+            default_store = store_options[0] if store_options else get_default_store()
+        except Exception:
+            store_options = []
+            default_store = None
+
         return {
             "cafe": {
                 "name": app.config["CAFE_NAME"],
@@ -198,5 +207,17 @@ def _register_template_context(app):
                 "phone": app.config["CAFE_PHONE"],
             },
             "table_count": app.config["CAFE_TABLE_COUNT"],
+            "store_options": store_options,
+            "store_options_payload": [
+                {
+                    "id": store.id,
+                    "name": store.name,
+                    "slug": store.slug,
+                    "address": store.address or "",
+                    "phone": store.phone or "",
+                }
+                for store in store_options
+            ],
+            "default_store": default_store,
             "today_label": datetime.now().strftime("%d %b %Y").lstrip("0"),
         }

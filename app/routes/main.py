@@ -15,7 +15,12 @@ def home():
 @main_bp.get("/qr/table/<int:table_id>.png")
 def table_qr(table_id):
     table = get_table(table_id)
-    menu_url = url_for("customer.menu", table=table.id, _external=True)
+    menu_url = url_for(
+        "customer.menu",
+        store=table.store.slug if table.store else None,
+        table=table.id,
+        _external=True,
+    )
     image = make_qr_png(menu_url, request.args.get("size", 320))
     return send_file(
         image,

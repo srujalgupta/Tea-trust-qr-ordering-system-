@@ -3,6 +3,7 @@ from decimal import Decimal
 from app.extensions import db
 from app.models import CafeTable, Category, MenuItem
 from .auth_service import ensure_admin_user
+from .store_service import ensure_default_stores
 
 
 CATEGORIES = [
@@ -210,10 +211,10 @@ def _price(value):
     return Decimal(str(value)).quantize(Decimal("0.01"))
 
 
-def _upsert_category(name, display_order):
-    category = Category.query.filter_by(name=name).first()
+def _upsert_category(store, name, display_order):
+    category = Category.query.filter_by(store_id=store.id, name=name).first()
     if not category:
-        category = Category(name=name)
+        category = Category(store=store, name=name)
         db.session.add(category)
         category.display_order = display_order
         category.description = None
@@ -221,10 +222,14 @@ def _upsert_category(name, display_order):
     return category
 
 
-def _upsert_menu_item(category, name, price, tags):
-    item = MenuItem.query.filter_by(category_id=category.id, name=name).first()
+def _upsert_menu_item(store, category, name, price, tags):
+    item = MenuItem.query.filter_by(
+        store_id=store.id,
+        category_id=category.id,
+        name=name,
+    ).first()
     if not item:
-        item = MenuItem(category=category, name=name)
+        item = MenuItem(store=store, category=category, name=name)
         db.session.add(item)
         item.description = ""
         item.price = _price(price)
@@ -237,22 +242,25 @@ def _upsert_menu_item(category, name, price, tags):
 
 def _rename_existing_seed_data():
     for old_name, new_name in CATEGORY_RENAMES.items():
-        old_category = Category.query.filter_by(name=old_name).first()
-        if not old_category:
-            continue
-        new_category = Category.query.filter_by(name=new_name).first()
-        if new_category and new_category.id != old_category.id:
-            for item in old_category.menu_items:
-                item.category = new_category
-            old_category.is_active = False
-        else:
-            old_category.name = new_name
+        for old_category in Category.query.filter_by(name=old_name).all():
+            new_category = Category.query.filter_by(
+                store_id=old_category.store_id,
+                name=new_name,
+            ).first()
+            if new_category and new_category.id != old_category.id:
+                for item in old_category.menu_items:
+                    item.category = new_category
+                    item.store_id = new_category.store_id
+                old_category.is_active = False
+            else:
+                old_category.name = new_name
 
     db.session.flush()
 
     for old_name, new_name in MENU_ITEM_RENAMES.items():
         for item in MenuItem.query.filter_by(name=old_name).all():
             existing = MenuItem.query.filter_by(
+                store_id=item.store_id,
                 category_id=item.category_id,
                 name=new_name,
             ).first()
@@ -270,25 +278,31 @@ def seed_sample_data(config):
     )
 
     _rename_existing_seed_data()
-
-    categories = {}
-    for name, display_order in CATEGORIES:
-        categories[name] = _upsert_category(name, display_order)
-
+    stores = ensure_default_stores()
     db.session.flush()
 
-    for category_name, name, price, tags in MENU_ITEMS:
-        _upsert_menu_item(categories[category_name], name, price, tags)
+    for store in stores:
+        categories = {}
+        for name, display_order in CATEGORIES:
+            categories[name] = _upsert_category(store, name, display_order)
 
-    table_count = int(config.get("CAFE_TABLE_COUNT", 6))
-    for table_number in range(1, table_count + 1):
-        table = CafeTable.query.filter_by(table_number=table_number).first()
-        if not table:
-            table = CafeTable(table_number=table_number)
-            db.session.add(table)
-            table.is_active = True
-        table.label = table.label or f"Table {table_number}"
-        table.qr_slug = table.qr_slug or f"table-{table_number}"
+        db.session.flush()
+
+        for category_name, name, price, tags in MENU_ITEMS:
+            _upsert_menu_item(store, categories[category_name], name, price, tags)
+
+        table_count = int(config.get("CAFE_TABLE_COUNT", 6))
+        for table_number in range(1, table_count + 1):
+            table = CafeTable.query.filter_by(
+                store_id=store.id,
+                table_number=table_number,
+            ).first()
+            if not table:
+                table = CafeTable(store=store, table_number=table_number)
+                db.session.add(table)
+                table.is_active = True
+            table.label = table.label or f"Table {table_number}"
+            table.qr_slug = table.qr_slug or f"{store.slug}-table-{table_number}"
 
     db.session.commit()
     return admin

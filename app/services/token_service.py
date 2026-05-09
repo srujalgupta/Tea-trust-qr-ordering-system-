@@ -16,10 +16,10 @@ def _today():
     return datetime.now().date()
 
 
-def _acquire_database_day_lock(token_date):
+def _acquire_database_day_lock(token_date, store_id):
     bind = db.session.get_bind()
     if bind and bind.dialect.name == "postgresql":
-        lock_id = int(token_date.strftime("%Y%m%d"))
+        lock_id = int(f"{int(store_id):04d}{token_date.strftime('%Y%m%d')}")
         db.session.execute(text("SELECT pg_advisory_xact_lock(:lock_id)"), {"lock_id": lock_id})
 
 
@@ -29,14 +29,16 @@ def generate_daily_token_for_order(order):
 
     token_date = _today()
     with _token_lock:
-        _acquire_database_day_lock(token_date)
+        _acquire_database_day_lock(token_date, order.store_id)
         max_number = (
             db.session.query(func.max(DailyToken.token_number))
+            .filter(DailyToken.store_id == order.store_id)
             .filter(DailyToken.token_date == token_date)
             .scalar()
             or 0
         )
         token = DailyToken(
+            store_id=order.store_id,
             token_date=token_date,
             token_number=max_number + 1,
             order=order,

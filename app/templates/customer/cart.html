@@ -4,10 +4,16 @@
 {% block page_id %}{% if checkout_mode %}customer-checkout{% else %}customer-cart{% endif %}{% endblock %}
 
 {% block content %}
-  <section class="cart-page-shell" data-table-id="{{ table.id if table else '' }}" data-mode="{% if checkout_mode %}checkout{% else %}cart{% endif %}">
+  <section
+    class="cart-page-shell"
+    data-store-id="{{ store.id if store else '' }}"
+    data-store-slug="{{ store.slug if store else '' }}"
+    data-table-id="{{ table.id if table else '' }}"
+    data-mode="{% if checkout_mode %}checkout{% else %}cart{% endif %}"
+  >
     <div class="cart-page-heading">
       <div>
-        <p class="eyebrow">{% if table %}Ordering for {{ table.label }}{% else %}Your order{% endif %}</p>
+        <p class="eyebrow">{% if table %}{{ store.name }} - {{ table.label }}{% elif store %}{{ store.name }}{% else %}Your order{% endif %}</p>
         <h1>{% if checkout_mode %}Checkout{% else %}Your Cart{% endif %}</h1>
         <p>{% if checkout_mode %}Review your receipt, add your details, and pay directly at the store.{% else %}Review your receipt before checkout.{% endif %}</p>
       </div>

@@ -34,8 +34,10 @@ from app.services.serializers import (
     serialize_menu_item,
     serialize_order,
     serialize_staff_profile,
+    serialize_store,
     serialize_table,
 )
+from app.services.store_service import list_stores, store_from_request_args
 from app.services.table_service import create_table, list_tables, update_table
 from app.services.upload_service import save_menu_image
 from app.services.user_service import (
@@ -57,13 +59,28 @@ def _json_body():
     return data
 
 
+def _selected_store():
+    return store_from_request_args(request.args)
+
+
 @api_bp.get("/health")
 def api_health_check():
     return jsonify(build_health_payload(current_app)), 200
 
 
+@api_bp.get("/stores")
+def stores():
+    include_inactive = (
+        current_user.is_authenticated
+        and current_user.is_admin
+        and request.args.get("include_inactive") == "1"
+    )
+    return jsonify([serialize_store(store) for store in list_stores(include_inactive)])
+
+
 @api_bp.get("/menu")
 def menu_items():
+    store = _selected_store()
     category_id = request.args.get("category_id", type=int)
     search = request.args.get("q", "")
     include_unavailable = (
@@ -72,7 +89,7 @@ def menu_items():
         and current_user.can("menu:manage")
         and request.args.get("include_unavailable") == "1"
     )
-    return jsonify(menu_payload(category_id, search, include_unavailable))
+    return jsonify(menu_payload(category_id, search, include_unavailable, store=store))
 
 
 @api_bp.post("/orders")
@@ -95,8 +112,9 @@ def get_customer_order(order_id):
 @api_bp.get("/admin/orders")
 def admin_orders():
     require_admin_api("orders:view")
+    store = _selected_store()
     status = request.args.get("status") or None
-    return jsonify([serialize_order(order) for order in list_orders(status)])
+    return jsonify([serialize_order(order) for order in list_orders(status, store=store)])
 
 
 @api_bp.patch("/admin/orders/<int:order_id>/status")
@@ -112,10 +130,10 @@ def admin_update_order_status(order_id):
     return jsonify(serialize_order(order))
 
 
-def _admin_orders_for_range(days):
+def _admin_orders_for_range(days, store):
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     return [
-        order for order in list_orders()
+        order for order in list_orders(store=store)
         if order.created_at and _aware_datetime(order.created_at) >= cutoff
     ]
 
@@ -133,8 +151,9 @@ def _aware_datetime(value):
 @api_bp.get("/admin/analytics")
 def admin_analytics():
     require_admin_api("analytics:view")
+    store = _selected_store()
     days = max(1, min(request.args.get("days", 7, type=int), 365))
-    orders = _admin_orders_for_range(days)
+    orders = _admin_orders_for_range(days, store)
     revenue_orders = [order for order in orders if _active_revenue_order(order)]
     revenue = sum((order.total_amount for order in revenue_orders), start=0)
 
@@ -191,6 +210,7 @@ def admin_analytics():
 @api_bp.get("/admin/export/orders.csv")
 def admin_orders_export():
     require_admin_api("staff:manage")
+    store = _selected_store()
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow([
@@ -206,7 +226,7 @@ def admin_orders_export():
         "items",
         "notes",
     ])
-    for order in list_orders():
+    for order in list_orders(store=store):
         writer.writerow([
             order.order_number,
             order.created_at.isoformat() if order.created_at else "",
@@ -230,10 +250,11 @@ def admin_orders_export():
 @api_bp.get("/admin/export/menu.csv")
 def admin_menu_export():
     require_admin_api("staff:manage")
+    store = _selected_store()
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(["category", "name", "price", "available", "veg", "bestseller", "tags"])
-    for item in list_menu_items(include_unavailable=True):
+    for item in list_menu_items(include_unavailable=True, store=store):
         writer.writerow([
             item.category.name if item.category else "",
             item.name,
@@ -253,16 +274,18 @@ def admin_menu_export():
 @api_bp.get("/admin/customers")
 def admin_customer_contacts():
     require_admin_api("staff:manage")
+    store = _selected_store()
     marketing_only = request.args.get("marketing_only") == "1"
     return jsonify([
         serialize_customer_contact(contact)
-        for contact in list_customer_contacts(marketing_only=marketing_only)
+        for contact in list_customer_contacts(marketing_only=marketing_only, store=store)
     ])
 
 
 @api_bp.get("/admin/export/customers.csv")
 def admin_customers_export():
     require_admin_api("staff:manage")
+    store = _selected_store()
     marketing_only = request.args.get("marketing_only") == "1"
     output = StringIO()
     writer = csv.writer(output)
@@ -274,7 +297,7 @@ def admin_customers_export():
         "total_spend",
         "last_order_at",
     ])
-    for contact in list_customer_contacts(marketing_only=marketing_only):
+    for contact in list_customer_contacts(marketing_only=marketing_only, store=store):
         writer.writerow([
             contact.name or "",
             contact.phone,
@@ -293,7 +316,8 @@ def admin_customers_export():
 @api_bp.post("/admin/broadcasts")
 def admin_send_broadcast():
     require_admin_api("staff:manage")
-    return jsonify(send_customer_broadcast(_json_body(), current_app.config))
+    store = _selected_store()
+    return jsonify(send_customer_broadcast(_json_body(), current_app.config, store=store))
 
 
 @api_bp.get("/admin/staff")
@@ -328,25 +352,29 @@ def admin_delete_staff_profile(user_id):
 @api_bp.post("/admin/categories")
 def admin_create_category():
     require_admin_api("menu:manage")
-    return jsonify(serialize_category(create_category(_json_body()))), 201
+    store = _selected_store()
+    return jsonify(serialize_category(create_category(_json_body(), store=store))), 201
 
 
 @api_bp.patch("/admin/categories/<int:category_id>")
 def admin_update_category(category_id):
     require_admin_api("menu:manage")
-    return jsonify(serialize_category(update_category(category_id, _json_body())))
+    store = _selected_store()
+    return jsonify(serialize_category(update_category(category_id, _json_body(), store=store)))
 
 
 @api_bp.post("/admin/menu-items")
 def admin_create_menu_item():
     require_admin_api("menu:manage")
-    return jsonify(serialize_menu_item(create_menu_item(_json_body()))), 201
+    store = _selected_store()
+    return jsonify(serialize_menu_item(create_menu_item(_json_body(), store=store))), 201
 
 
 @api_bp.patch("/admin/menu-items/<int:item_id>")
 def admin_update_menu_item(item_id):
     require_admin_api("menu:manage")
-    return jsonify(serialize_menu_item(update_menu_item(item_id, _json_body())))
+    store = _selected_store()
+    return jsonify(serialize_menu_item(update_menu_item(item_id, _json_body(), store=store)))
 
 
 @api_bp.delete("/admin/menu-items/<int:item_id>")
@@ -370,19 +398,25 @@ def admin_upload_menu_image(item_id):
 @api_bp.get("/admin/tables")
 def admin_tables():
     require_admin_api("tables:manage")
+    store = _selected_store()
     include_inactive = request.args.get("include_inactive") == "1"
     return jsonify(
-        [serialize_table(table) for table in list_tables(include_inactive=include_inactive)]
+        [
+            serialize_table(table)
+            for table in list_tables(include_inactive=include_inactive, store=store)
+        ]
     )
 
 
 @api_bp.post("/admin/tables")
 def admin_create_table():
     require_admin_api("tables:manage")
-    return jsonify(serialize_table(create_table(_json_body()))), 201
+    store = _selected_store()
+    return jsonify(serialize_table(create_table(_json_body(), store=store))), 201
 
 
 @api_bp.patch("/admin/tables/<int:table_id>")
 def admin_update_table(table_id):
     require_admin_api("tables:manage")
-    return jsonify(serialize_table(update_table(table_id, _json_body())))
+    store = _selected_store()
+    return jsonify(serialize_table(update_table(table_id, _json_body(), store=store)))

@@ -9,7 +9,7 @@ from app.services.notification_service import (
 )
 
 
-def send_customer_broadcast(data, config):
+def send_customer_broadcast(data, config, store=None):
     message = (data.get("message") or "").strip()
     if len(message) < 5:
         raise ValidationError("Broadcast message must be at least 5 characters.")
@@ -20,7 +20,7 @@ def send_customer_broadcast(data, config):
 
     contacts = [
         SimpleNamespace(id=contact.id, name=contact.name or "", phone=contact.phone)
-        for contact in list_customer_contacts(marketing_only=True)
+        for contact in list_customer_contacts(marketing_only=True, store=store)
         if contact.phone
     ]
     sent = 0

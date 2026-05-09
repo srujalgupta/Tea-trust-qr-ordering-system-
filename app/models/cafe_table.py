@@ -6,13 +6,23 @@ class CafeTable(TimestampMixin, db.Model):
     __tablename__ = "tables"
 
     id = db.Column(db.Integer, primary_key=True)
-    table_number = db.Column(db.Integer, nullable=False, unique=True, index=True)
+    store_id = db.Column(
+        db.Integer,
+        db.ForeignKey("stores.id", ondelete="CASCADE"),
+        nullable=False,
+        default=1,
+        index=True,
+    )
+    table_number = db.Column(db.Integer, nullable=False, index=True)
     label = db.Column(db.String(120), nullable=True)
-    qr_slug = db.Column(db.String(120), nullable=False, unique=True, index=True)
+    qr_slug = db.Column(db.String(120), nullable=False, index=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True, index=True)
 
+    store = db.relationship("Store", back_populates="tables")
     orders = db.relationship("Order", back_populates="table")
 
     __table_args__ = (
         db.CheckConstraint("table_number > 0", name="ck_tables_table_number_positive"),
+        db.UniqueConstraint("store_id", "table_number", name="uq_tables_store_number"),
+        db.UniqueConstraint("store_id", "qr_slug", name="uq_tables_store_slug"),
     )

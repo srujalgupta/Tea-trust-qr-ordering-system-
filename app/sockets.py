@@ -20,5 +20,9 @@ def register_socket_handlers():
         join_room(f"order_{order_id}")
 
     @socketio.on("admin_join")
-    def admin_join():
+    def admin_join(data=None):
+        store_id = str((data or {}).get("store_id", "")).strip()
+        if store_id.isdigit():
+            join_room(f"admin_orders_store_{store_id}")
+            return
         join_room("admin_orders")

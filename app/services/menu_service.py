@@ -4,6 +4,7 @@ from app.extensions import db
 from app.models import Category, MenuItem, OrderItem
 from .errors import NotFoundError, ValidationError
 from .serializers import serialize_category, serialize_menu_item
+from .store_service import get_store, validate_store_match
 
 
 def _clean_text(value, field, max_length=None, required=False):
@@ -47,15 +48,23 @@ def _parse_int(value, field, default=None, minimum=None):
     return number
 
 
-def list_categories(include_inactive=False):
-    query = Category.query
+def _resolve_store(store=None):
+    if store is not None and hasattr(store, "id"):
+        return store
+    return get_store(store)
+
+
+def list_categories(include_inactive=False, store=None):
+    store = _resolve_store(store)
+    query = Category.query.filter(Category.store_id == store.id)
     if not include_inactive:
         query = query.filter_by(is_active=True)
     return query.order_by(Category.display_order.asc(), Category.name.asc()).all()
 
 
-def list_menu_items(category_id=None, search=None, include_unavailable=False):
-    query = MenuItem.query.join(Category)
+def list_menu_items(category_id=None, search=None, include_unavailable=False, store=None):
+    store = _resolve_store(store)
+    query = MenuItem.query.join(Category).filter(MenuItem.store_id == store.id)
     if category_id:
         query = query.filter(MenuItem.category_id == category_id)
     if search:
@@ -72,32 +81,49 @@ def list_menu_items(category_id=None, search=None, include_unavailable=False):
     return query.order_by(Category.display_order.asc(), MenuItem.name.asc()).all()
 
 
-def menu_payload(category_id=None, search=None, include_unavailable=False):
+def menu_payload(category_id=None, search=None, include_unavailable=False, store=None):
+    store = _resolve_store(store)
     return {
-        "categories": [serialize_category(category) for category in list_categories(include_unavailable)],
+        "store": {
+            "id": store.id,
+            "name": store.name,
+            "slug": store.slug,
+        },
+        "categories": [
+            serialize_category(category)
+            for category in list_categories(include_unavailable, store=store)
+        ],
         "items": [
             serialize_menu_item(item)
-            for item in list_menu_items(category_id, search, include_unavailable)
+            for item in list_menu_items(category_id, search, include_unavailable, store=store)
         ],
     }
 
 
-def get_category(category_id):
+def get_category(category_id, store=None):
     category = db.session.get(Category, category_id)
     if not category:
         raise NotFoundError("Category not found.")
+    if store is not None:
+        store = _resolve_store(store)
+        validate_store_match(category.store_id, store, "Category belongs to a different store.")
     return category
 
 
-def get_menu_item(item_id):
+def get_menu_item(item_id, store=None):
     item = db.session.get(MenuItem, item_id)
     if not item:
         raise NotFoundError("Menu item not found.")
+    if store is not None:
+        store = _resolve_store(store)
+        validate_store_match(item.store_id, store, "Menu item belongs to a different store.")
     return item
 
 
-def create_category(data):
+def create_category(data, store=None):
+    store = _resolve_store(data.get("store_id") or data.get("store") or store)
     category = Category(
+        store=store,
         name=_clean_text(data.get("name"), "name", 120, required=True),
         description=_clean_text(data.get("description"), "description", 255),
         display_order=_parse_int(data.get("display_order"), "display_order", default=0),
@@ -108,8 +134,8 @@ def create_category(data):
     return category
 
 
-def update_category(category_id, data):
-    category = get_category(category_id)
+def update_category(category_id, data, store=None):
+    category = get_category(category_id, store=store)
     if "name" in data:
         category.name = _clean_text(data.get("name"), "name", 120, required=True)
     if "description" in data:
@@ -126,9 +152,14 @@ def update_category(category_id, data):
     return category
 
 
-def create_menu_item(data):
-    category = get_category(_parse_int(data.get("category_id"), "category_id", minimum=1))
+def create_menu_item(data, store=None):
+    store = _resolve_store(data.get("store_id") or data.get("store") or store)
+    category = get_category(
+        _parse_int(data.get("category_id"), "category_id", minimum=1),
+        store=store,
+    )
     item = MenuItem(
+        store=store,
         category=category,
         name=_clean_text(data.get("name"), "name", 160, required=True),
         description=_clean_text(data.get("description"), "description"),
@@ -143,12 +174,14 @@ def create_menu_item(data):
     return item
 
 
-def update_menu_item(item_id, data):
-    item = get_menu_item(item_id)
+def update_menu_item(item_id, data, store=None):
+    item = get_menu_item(item_id, store=store)
     if "category_id" in data:
         item.category = get_category(
-            _parse_int(data.get("category_id"), "category_id", minimum=1)
+            _parse_int(data.get("category_id"), "category_id", minimum=1),
+            store=item.store,
         )
+        item.store = item.category.store
     if "name" in data:
         item.name = _clean_text(data.get("name"), "name", 160, required=True)
     if "description" in data:

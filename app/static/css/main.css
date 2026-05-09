@@ -301,6 +301,36 @@ body[data-page="customer-menu"] .topbar {
   transform: translateY(-1px);
 }
 
+.store-switcher {
+  width: auto;
+  min-width: 150px;
+  display: inline-grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.store-switcher select {
+  min-height: 42px;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 8px 34px 8px 11px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-transform: none;
+}
+
+.customer-store-switcher {
+  flex: 0 1 190px;
+}
+
+.admin-store-switcher {
+  min-width: 170px;
+}
+
 .shell {
   width: min(100% - 32px, 1180px);
   margin: 0 auto;
@@ -2358,6 +2388,11 @@ p {
   gap: 14px;
 }
 
+.admin-userbar {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .admin-title-row strong {
   color: #111827;
   font-size: 1.35rem;
@@ -3116,6 +3151,15 @@ p {
     align-items: center;
     flex-wrap: wrap;
     padding: 14px 16px;
+  }
+
+  .customer-store-switcher,
+  .topnav {
+    flex: 1 1 100%;
+  }
+
+  .store-switcher {
+    width: 100%;
   }
 
   .brand-mark {

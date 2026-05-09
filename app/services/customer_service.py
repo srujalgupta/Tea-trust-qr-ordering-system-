@@ -3,6 +3,7 @@ from decimal import Decimal
 from app.extensions import db
 from app.models import CustomerContact
 from .errors import ValidationError
+from .store_service import get_store
 
 
 def normalize_phone(value):
@@ -22,9 +23,14 @@ def upsert_customer_contact(order, marketing_opt_in=False):
     if not phone:
         return None
 
-    contact = CustomerContact.query.filter_by(phone=phone).first()
+    contact = CustomerContact.query.filter_by(store_id=order.store_id, phone=phone).first()
     if not contact:
-        contact = CustomerContact(phone=phone, order_count=0, total_spend=Decimal("0.00"))
+        contact = CustomerContact(
+            store_id=order.store_id,
+            phone=phone,
+            order_count=0,
+            total_spend=Decimal("0.00"),
+        )
         db.session.add(contact)
 
     if order.customer_name:
@@ -39,8 +45,11 @@ def upsert_customer_contact(order, marketing_opt_in=False):
     return contact
 
 
-def list_customer_contacts(marketing_only=False):
+def list_customer_contacts(marketing_only=False, store=None):
     query = CustomerContact.query
+    if store is not None:
+        store_id = store.id if hasattr(store, "id") else get_store(store).id
+        query = query.filter(CustomerContact.store_id == store_id)
     if marketing_only:
         query = query.filter_by(marketing_opt_in=True)
     return query.order_by(
