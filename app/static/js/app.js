@@ -2477,12 +2477,14 @@ function initAdminSettings() {
   if (!list) return;
   const form = document.getElementById("staffProfileForm");
   const roleSelect = document.getElementById("staffRoleSelect");
+  const storeSelect = document.getElementById("staffStoreSelect");
   const summary = document.getElementById("staffProfileSummary");
   const broadcastForm = document.getElementById("broadcastForm");
   const broadcastSummary = document.getElementById("broadcastContactSummary");
   const broadcastStatus = document.getElementById("broadcastStatus");
   const broadcastSendButton = document.getElementById("broadcastSendButton");
   let roles = [];
+  let stores = [];
   let staff = [];
   let broadcastContacts = [];
 
@@ -2492,9 +2494,24 @@ function initAdminSettings() {
     )).join("");
   }
 
+  function storeOptionsHtml(selectedStoreId = "", includeAll = true) {
+    return [
+      includeAll ? `<option value="">All stores</option>` : "",
+      ...stores.map((store) => (
+        `<option value="${store.id}" ${String(store.id) === String(selectedStoreId || "") ? "selected" : ""}>${escapeHtml(store.name)}</option>`
+      )),
+    ].join("");
+  }
+
   function render() {
     if (roleSelect) {
       roleSelect.innerHTML = roleOptionsHtml("counter");
+    }
+    if (storeSelect) {
+      storeSelect.innerHTML = storeOptionsHtml(selectedStoreId(), false);
+      storeSelect.value = stores.some((store) => String(store.id) === String(selectedStoreId()))
+        ? String(selectedStoreId())
+        : String(stores[0]?.id || "");
     }
     if (summary) {
       const activeCount = staff.filter((user) => user.active).length;
@@ -2510,12 +2527,13 @@ function initAdminSettings() {
       <article class="admin-row staff-profile-row" data-staff-row="${user.id}">
         <div>
           <strong>${escapeHtml(user.username)}</strong>
-          <p class="helper-text">${escapeHtml(user.role_label)}${user.email ? ` - ${escapeHtml(user.email)}` : ""}</p>
+          <p class="helper-text">${escapeHtml(user.role_label)} - ${escapeHtml(user.store_name || "All stores")}${user.email ? ` - ${escapeHtml(user.email)}` : ""}</p>
         </div>
         <div class="staff-profile-edit-grid">
           <input name="username" value="${escapeHtml(user.username)}" aria-label="Username">
           <input name="email" type="email" value="${escapeHtml(user.email)}" aria-label="Email">
           <select name="role" aria-label="Profile role">${roleOptionsHtml(user.role)}</select>
+          <select name="store_id" aria-label="Assigned store">${storeOptionsHtml(user.store_id)}</select>
           <input name="password" type="password" placeholder="New password" autocomplete="new-password" minlength="12" aria-label="New password">
           <label class="check-row"><input type="checkbox" name="active" ${user.active ? "checked" : ""}> Active</label>
           <div class="staff-profile-actions">
@@ -2533,6 +2551,7 @@ function initAdminSettings() {
       apiFetch(urlWithStore("/api/v1/admin/customers?marketing_only=1")),
     ]);
     roles = staffPayload.roles || [];
+    stores = staffPayload.stores || storeOptions;
     staff = staffPayload.staff || [];
     broadcastContacts = contactPayload || [];
     render();
@@ -2579,6 +2598,7 @@ function initAdminSettings() {
         username: data.get("username"),
         email: data.get("email"),
         role: data.get("role"),
+        store_id: data.get("store_id"),
         password: data.get("password"),
       },
     });
@@ -2607,6 +2627,7 @@ function initAdminSettings() {
         username: row.querySelector('[name="username"]').value,
         email: row.querySelector('[name="email"]').value,
         role: row.querySelector('[name="role"]').value,
+        store_id: row.querySelector('[name="store_id"]').value,
         active: row.querySelector('[name="active"]').checked,
         password: row.querySelector('[name="password"]').value,
       },

@@ -200,8 +200,8 @@ def update_menu_item(item_id, data, store=None):
     return item
 
 
-def delete_menu_item(item_id):
-    item = get_menu_item(item_id)
+def delete_menu_item(item_id, store=None):
+    item = get_menu_item(item_id, store=store)
     has_order_history = db.session.query(OrderItem.id).filter_by(menu_item_id=item.id).first()
     if has_order_history:
         item.is_available = False
@@ -211,8 +211,8 @@ def delete_menu_item(item_id):
     db.session.commit()
 
 
-def set_menu_item_image(item_id, filename):
-    item = get_menu_item(item_id)
+def set_menu_item_image(item_id, filename, store=None):
+    item = get_menu_item(item_id, store=store)
     item.image_filename = filename
     db.session.commit()
     return item

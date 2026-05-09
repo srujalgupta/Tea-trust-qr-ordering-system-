@@ -129,6 +129,18 @@ def _ensure_store_columns():
             "store_id",
             "store_id INTEGER NOT NULL DEFAULT 1",
         )
+    if "users" in table_names:
+        _add_column("users", "store_id", "store_id INTEGER")
+        db.session.execute(
+            text(
+                """
+                UPDATE users
+                SET store_id = 1
+                WHERE COALESCE(role, 'owner') != 'owner'
+                  AND store_id IS NULL
+                """
+            )
+        )
     db.session.commit()
 
 
@@ -167,6 +179,7 @@ def _ensure_store_indexes():
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_daily_tokens_store_date_number ON daily_tokens (store_id, token_date, token_number)",
         "CREATE INDEX IF NOT EXISTS ix_daily_tokens_store_date_status ON daily_tokens (store_id, token_date, status)",
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_customer_contacts_store_phone ON customer_contacts (store_id, phone)",
+        "CREATE INDEX IF NOT EXISTS ix_users_store_id ON users (store_id)",
     )
     tables = set(inspect(db.engine).get_table_names())
     for statement in statements:

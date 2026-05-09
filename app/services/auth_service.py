@@ -149,6 +149,9 @@ def ensure_admin_user(username, password, email=None):
         if not user.role:
             user.role = "owner"
             changed = True
+        if user.role == "owner" and user.store_id is not None:
+            user.store_id = None
+            changed = True
         if email and not user.email:
             email_owner = User.query.filter_by(email=email).first()
             if not email_owner or email_owner.id == user.id:
@@ -161,7 +164,14 @@ def ensure_admin_user(username, password, email=None):
     if not _allows_dev_seed_password(username, password):
         validate_password_strength(password, username=username)
 
-    user = User(username=username, email=email, is_admin=True, role="owner", active=True)
+    user = User(
+        username=username,
+        email=email,
+        is_admin=True,
+        role="owner",
+        store_id=None,
+        active=True,
+    )
     user.set_password(password)
     db.session.add(user)
     db.session.commit()

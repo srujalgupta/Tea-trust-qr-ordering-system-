@@ -14,6 +14,8 @@ Production-oriented QR cafe ordering system built with Flask, SQLAlchemy, Flask-
 - Table-aware customer navigation across menu, cart, checkout, and order status
 - Admin login/logout with Flask-Login and Werkzeug password hashing
 - Staff profiles for owner, manager, counter, kitchen, and menu-only access
+- Staff profiles can be assigned to one store so branch teams only see their own
+  orders, tables, menu, customers, and analytics; owner profiles can access all stores
 - Live order dashboard with SocketIO updates
 - Admin order detail modal, quick kitchen status actions, unseen-order highlighting, and cancellation reasons
 - Kitchen display mode at `/admin/kitchen`

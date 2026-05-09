@@ -56,6 +56,17 @@ def list_stores(include_inactive=False):
     return query.order_by(Store.id.asc()).all()
 
 
+def stores_for_user(user, include_inactive=False):
+    if not getattr(user, "is_authenticated", False) or getattr(user, "role", None) == "owner":
+        return list_stores(include_inactive=include_inactive)
+    if not getattr(user, "store_id", None):
+        return []
+    query = Store.query.filter(Store.id == user.store_id)
+    if not include_inactive:
+        query = query.filter(Store.is_active.is_(True))
+    return query.order_by(Store.id.asc()).all()
+
+
 def get_default_store():
     store = Store.query.filter_by(is_active=True).order_by(Store.id.asc()).first()
     if store:

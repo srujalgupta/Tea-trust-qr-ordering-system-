@@ -5,6 +5,7 @@ from app.models import User
 from app.models.constants import STAFF_ROLE_LABELS
 from .auth_service import validate_password_strength, validate_staff_role
 from .errors import NotFoundError, ValidationError
+from .store_service import get_store, list_stores
 
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+$")
@@ -59,6 +60,17 @@ def _bool_value(value):
     return bool(value)
 
 
+def _store_for_role(role, store_reference=None):
+    if role == "owner":
+        return None
+    if store_reference in (None, ""):
+        stores = list_stores()
+        if not stores:
+            raise ValidationError("Create a store before assigning staff.")
+        return stores[0]
+    return get_store(store_reference)
+
+
 def _protect_last_owner(user, next_role=None, next_active=None):
     next_role = next_role if next_role is not None else user.role
     next_active = next_active if next_active is not None else user.active
@@ -86,12 +98,20 @@ def create_staff_profile(data):
     username = _clean_username(data.get("username"))
     email = _clean_optional_email(data.get("email"))
     role = validate_staff_role(data.get("role"))
+    store = _store_for_role(role, data.get("store_id") or data.get("store"))
     password = _validate_password(data.get("password"), username=username, required=True)
 
     _ensure_username_available(username)
     _ensure_email_available(email)
 
-    user = User(username=username, email=email, role=role, is_admin=True, active=True)
+    user = User(
+        username=username,
+        email=email,
+        role=role,
+        store=store,
+        is_admin=True,
+        active=True,
+    )
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
@@ -103,6 +123,8 @@ def update_staff_profile(user_id, data, actor=None):
 
     next_role = validate_staff_role(data.get("role")) if "role" in data else user.role
     next_active = _bool_value(data.get("active")) if "active" in data else user.active
+    store_reference = data.get("store_id") if "store_id" in data else user.store_id
+    next_store = _store_for_role(next_role, store_reference)
     _protect_last_owner(user, next_role=next_role, next_active=next_active)
 
     if actor and actor.id == user.id and (next_role != user.role or next_active != user.active):
@@ -118,6 +140,8 @@ def update_staff_profile(user_id, data, actor=None):
         user.email = email
     if "role" in data:
         user.role = next_role
+    if "role" in data or "store_id" in data:
+        user.store = next_store
     if "active" in data:
         user.active = next_active
     if data.get("password"):

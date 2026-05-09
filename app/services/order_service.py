@@ -214,7 +214,7 @@ def after_order_confirmed(order, config):
     emit_order_created(order)
 
 
-def update_order_status(order_id, status, config, cancellation_reason=None):
+def update_order_status(order_id, status, config, cancellation_reason=None, store=None):
     status = (status or "").strip().lower()
     if status not in ORDER_STATUSES:
         raise ValidationError("Invalid order status.")
@@ -222,6 +222,9 @@ def update_order_status(order_id, status, config, cancellation_reason=None):
         raise ValidationError("Invalid token status.")
 
     order = get_order(order_id)
+    if store is not None:
+        store = get_store(store) if not hasattr(store, "id") else store
+        validate_store_match(order.store_id, store, "Order belongs to a different store.")
     order.status = status
     if status == "cancelled":
         reason = (cancellation_reason or "").strip()[:240]

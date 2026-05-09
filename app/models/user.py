@@ -15,7 +15,15 @@ class User(UserMixin, TimestampMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=True)
     role = db.Column(db.String(30), nullable=False, default="owner", index=True)
+    store_id = db.Column(
+        db.Integer,
+        db.ForeignKey("stores.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     active = db.Column(db.Boolean, nullable=False, default=True)
+
+    store = db.relationship("Store")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -38,3 +46,8 @@ class User(UserMixin, TimestampMixin, db.Model):
     def can(self, permission):
         permissions = self.permissions
         return "*" in permissions or permission in permissions
+
+    def can_access_store(self, store_id):
+        if self.role == "owner":
+            return True
+        return self.store_id is not None and int(self.store_id) == int(store_id)

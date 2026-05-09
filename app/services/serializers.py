@@ -78,6 +78,8 @@ def serialize_staff_profile(user):
         "email": user.email or "",
         "role": user.role,
         "role_label": user.role_label,
+        "store_id": user.store_id,
+        "store_name": user.store.name if user.store else "All stores",
         "active": user.active,
         "created_at": user.created_at.isoformat() if user.created_at else None,
     }

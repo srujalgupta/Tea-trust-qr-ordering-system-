@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 from flask import Flask, jsonify, render_template, request
+from flask_login import current_user
 from sqlalchemy.exc import IntegrityError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.exceptions import HTTPException
@@ -191,9 +192,9 @@ def _register_template_context(app):
     @app.context_processor
     def inject_cafe_branding():
         try:
-            from app.services.store_service import get_default_store, list_stores
+            from app.services.store_service import get_default_store, stores_for_user
 
-            store_options = list_stores()
+            store_options = stores_for_user(current_user)
             default_store = store_options[0] if store_options else get_default_store()
         except Exception:
             store_options = []

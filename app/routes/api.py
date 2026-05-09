@@ -8,7 +8,7 @@ from flask_login import current_user
 
 from app.services.auth_service import require_admin_api
 from app.services.broadcast_service import send_customer_broadcast
-from app.services.errors import ValidationError
+from app.services.errors import ForbiddenError, ValidationError
 from app.services.customer_service import list_customer_contacts
 from app.services.health_service import build_health_payload
 from app.services.menu_service import (
@@ -37,7 +37,7 @@ from app.services.serializers import (
     serialize_store,
     serialize_table,
 )
-from app.services.store_service import list_stores, store_from_request_args
+from app.services.store_service import list_stores, store_from_request_args, stores_for_user
 from app.services.table_service import create_table, list_tables, update_table
 from app.services.upload_service import save_menu_image
 from app.services.user_service import (
@@ -60,7 +60,14 @@ def _json_body():
 
 
 def _selected_store():
-    return store_from_request_args(request.args)
+    store = store_from_request_args(request.args)
+    if (
+        current_user.is_authenticated
+        and current_user.is_admin
+        and not current_user.can_access_store(store.id)
+    ):
+        raise ForbiddenError("This staff profile is limited to another store.")
+    return store
 
 
 @api_bp.get("/health")
@@ -75,7 +82,12 @@ def stores():
         and current_user.is_admin
         and request.args.get("include_inactive") == "1"
     )
-    return jsonify([serialize_store(store) for store in list_stores(include_inactive)])
+    stores = (
+        stores_for_user(current_user, include_inactive=include_inactive)
+        if current_user.is_authenticated and current_user.is_admin
+        else list_stores(include_inactive)
+    )
+    return jsonify([serialize_store(store) for store in stores])
 
 
 @api_bp.get("/menu")
@@ -120,12 +132,14 @@ def admin_orders():
 @api_bp.patch("/admin/orders/<int:order_id>/status")
 def admin_update_order_status(order_id):
     require_admin_api("orders:update")
+    store = _selected_store()
     data = _json_body()
     order = update_order_status(
         order_id,
         data.get("status"),
         current_app.config,
         cancellation_reason=data.get("cancellation_reason"),
+        store=store,
     )
     return jsonify(serialize_order(order))
 
@@ -325,6 +339,7 @@ def admin_staff_profiles():
     require_admin_api("staff:manage")
     return jsonify({
         "roles": role_options_payload(),
+        "stores": [serialize_store(store) for store in list_stores()],
         "staff": [serialize_staff_profile(user) for user in list_staff_profiles()],
     })
 
@@ -380,19 +395,21 @@ def admin_update_menu_item(item_id):
 @api_bp.delete("/admin/menu-items/<int:item_id>")
 def admin_delete_menu_item(item_id):
     require_admin_api("menu:manage")
-    delete_menu_item(item_id)
+    store = _selected_store()
+    delete_menu_item(item_id, store=store)
     return jsonify({"deleted": True})
 
 
 @api_bp.post("/admin/menu-items/<int:item_id>/image")
 def admin_upload_menu_image(item_id):
     require_admin_api("menu:manage")
+    store = _selected_store()
     filename = save_menu_image(
         request.files.get("image"),
         current_app.config["UPLOAD_FOLDER"],
         current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
     )
-    return jsonify(serialize_menu_item(set_menu_item_image(item_id, filename)))
+    return jsonify(serialize_menu_item(set_menu_item_image(item_id, filename, store=store)))
 
 
 @api_bp.get("/admin/tables")
