@@ -192,10 +192,24 @@ def _register_template_context(app):
     @app.context_processor
     def inject_cafe_branding():
         try:
-            from app.services.store_service import get_default_store, stores_for_user
+            from app.services.store_service import get_default_store, get_store, stores_for_user
 
             store_options = stores_for_user(current_user)
-            default_store = store_options[0] if store_options else get_default_store()
+            requested_store = (
+                request.args.get("store")
+                or request.args.get("store_id")
+                or (request.view_args or {}).get("store_slug")
+            )
+            default_store = None
+            if requested_store:
+                try:
+                    candidate = get_store(requested_store)
+                except AppError:
+                    candidate = None
+                if candidate and any(store.id == candidate.id for store in store_options):
+                    default_store = candidate
+            if default_store is None:
+                default_store = store_options[0] if store_options else get_default_store()
         except Exception:
             store_options = []
             default_store = None

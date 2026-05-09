@@ -134,3 +134,94 @@ def test_store_locked_staff_cannot_access_other_store_orders():
     assert allowed.status_code == 200
     assert len(allowed.json) == 1
     assert allowed.json[0]["store_id"] == store_2_id
+
+
+def test_store_specific_login_redirects_and_updates_store_scoped_orders():
+    app = create_app("testing")
+
+    with app.app_context():
+        db.create_all()
+        seed_sample_data(app.config)
+
+        store_2 = Store.query.filter_by(slug="store-2").first()
+        store_2_item = MenuItem.query.filter_by(store_id=store_2.id).first()
+        store_2_table = CafeTable.query.filter_by(store_id=store_2.id, table_number=1).first()
+        order, _ = create_order(
+            {
+                "store_id": store_2.id,
+                "table_id": store_2_table.id,
+                "payment_method": "cash",
+                "items": [{"menu_item_id": store_2_item.id, "quantity": 1}],
+            },
+            app.config,
+        )
+        order_id = order.id
+        create_staff_profile(
+            {
+                "username": "store2runner",
+                "password": "StoreTwoRunner2026!",
+                "role": "kitchen",
+                "store_id": store_2.id,
+            }
+        )
+
+    client = app.test_client()
+    login_page = client.get("/admin/login?store=store-2")
+    token = csrf_from(login_page.get_data(as_text=True))
+    login = client.post(
+        "/admin/login?store=store-2",
+        data={
+            "username": "store2runner",
+            "password": "StoreTwoRunner2026!",
+            "store": "store-2",
+            "csrf_token": token,
+        },
+    )
+
+    assert login.status_code == 302
+    assert login.headers["Location"].endswith("/admin/kitchen?store=store-2")
+
+    kitchen = client.get("/admin/kitchen?store=store-2")
+    token = csrf_from(kitchen.get_data(as_text=True))
+    updated = client.patch(
+        f"/api/v1/admin/orders/{order_id}/status?store=store-2",
+        json={"status": "preparing"},
+        headers={"X-CSRFToken": token},
+    )
+
+    assert updated.status_code == 200
+    assert updated.json["status"] == "preparing"
+
+
+def test_store_specific_login_rejects_staff_from_another_store():
+    app = create_app("testing")
+
+    with app.app_context():
+        db.create_all()
+        seed_sample_data(app.config)
+
+        store_1 = Store.query.filter_by(slug="store-1").first()
+        create_staff_profile(
+            {
+                "username": "store1runner",
+                "password": "StoreOneRunner2026!",
+                "role": "kitchen",
+                "store_id": store_1.id,
+            }
+        )
+
+    client = app.test_client()
+    login_page = client.get("/admin/login?store=store-2")
+    token = csrf_from(login_page.get_data(as_text=True))
+    login = client.post(
+        "/admin/login?store=store-2",
+        data={
+            "username": "store1runner",
+            "password": "StoreOneRunner2026!",
+            "store": "store-2",
+            "csrf_token": token,
+        },
+    )
+
+    assert login.status_code == 200
+    assert b"This login is for Store 2" in login.data

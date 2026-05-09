@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=27">
   </head>
   {% set selected_store = store if store is defined and store else default_store %}
+  {% set admin_store_slug = selected_store.slug if selected_store else none %}
   <body
     data-page="{% block page_id %}{% endblock %}"
     data-cafe-name="{{ cafe.name }}"
@@ -15,7 +16,7 @@
     data-store-slug="{{ selected_store.slug if selected_store else '' }}"
   >
     {% if current_user.is_authenticated and current_user.is_admin %}
-      {% set admin_home = url_for('admin.dashboard') if current_user.can('dashboard:view') else (url_for('admin.kitchen_display') if current_user.can('orders:update') else (url_for('admin.menu_manager') if current_user.can('menu:manage') else url_for('admin.settings'))) %}
+      {% set admin_home = (url_for('admin.dashboard', store=admin_store_slug) if admin_store_slug else url_for('admin.dashboard')) if current_user.can('dashboard:view') else ((url_for('admin.kitchen_display', store=admin_store_slug) if admin_store_slug else url_for('admin.kitchen_display')) if current_user.can('orders:update') else ((url_for('admin.menu_manager', store=admin_store_slug) if admin_store_slug else url_for('admin.menu_manager')) if current_user.can('menu:manage') else (url_for('admin.settings', store=admin_store_slug) if admin_store_slug else url_for('admin.settings')))) %}
       <div class="admin-app">
         <aside class="admin-sidebar" aria-label="Admin navigation">
           <a class="admin-brand" href="{{ admin_home }}">
@@ -30,39 +31,39 @@
 
           <nav class="admin-nav">
             {% if current_user.can('dashboard:view') %}
-              <a class="admin-nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}" href="{{ url_for('admin.dashboard') }}">
+              <a class="admin-nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}" href="{{ url_for('admin.dashboard', store=admin_store_slug) if admin_store_slug else url_for('admin.dashboard') }}">
                 <span class="nav-icon">D</span>
                 Dashboard
               </a>
             {% endif %}
             <p class="nav-section">Manage</p>
             {% if current_user.can('menu:manage') %}
-              <a class="admin-nav-link {% if request.endpoint == 'admin.menu_manager' %}active{% endif %}" href="{{ url_for('admin.menu_manager') }}">
+              <a class="admin-nav-link {% if request.endpoint == 'admin.menu_manager' %}active{% endif %}" href="{{ url_for('admin.menu_manager', store=admin_store_slug) if admin_store_slug else url_for('admin.menu_manager') }}">
                 <span class="nav-icon">M</span>
                 Menu Items
               </a>
             {% endif %}
             {% if current_user.can('tables:manage') %}
-              <a class="admin-nav-link {% if request.endpoint == 'admin.table_manager' %}active{% endif %}" href="{{ url_for('admin.table_manager') }}">
+              <a class="admin-nav-link {% if request.endpoint == 'admin.table_manager' %}active{% endif %}" href="{{ url_for('admin.table_manager', store=admin_store_slug) if admin_store_slug else url_for('admin.table_manager') }}">
                 <span class="nav-icon">T</span>
                 Tables
               </a>
             {% endif %}
             {% if current_user.can('orders:update') %}
-              <a class="admin-nav-link {% if request.endpoint == 'admin.kitchen_display' %}active{% endif %}" href="{{ url_for('admin.kitchen_display') }}">
+              <a class="admin-nav-link {% if request.endpoint == 'admin.kitchen_display' %}active{% endif %}" href="{{ url_for('admin.kitchen_display', store=admin_store_slug) if admin_store_slug else url_for('admin.kitchen_display') }}">
                 <span class="nav-icon">K</span>
                 Kitchen
               </a>
             {% endif %}
             {% if current_user.can('analytics:view') %}
-              <a class="admin-nav-link {% if request.endpoint == 'admin.analytics' %}active{% endif %}" href="{{ url_for('admin.analytics') }}">
+              <a class="admin-nav-link {% if request.endpoint == 'admin.analytics' %}active{% endif %}" href="{{ url_for('admin.analytics', store=admin_store_slug) if admin_store_slug else url_for('admin.analytics') }}">
                 <span class="nav-icon">A</span>
                 Analytics
               </a>
             {% endif %}
             <p class="nav-section">System</p>
             {% if current_user.can('settings:view') %}
-              <a class="admin-nav-link {% if request.endpoint == 'admin.settings' %}active{% endif %}" href="{{ url_for('admin.settings') }}">
+              <a class="admin-nav-link {% if request.endpoint == 'admin.settings' %}active{% endif %}" href="{{ url_for('admin.settings', store=admin_store_slug) if admin_store_slug else url_for('admin.settings') }}">
                 <span class="nav-icon">S</span>
                 Settings
               </a>
@@ -93,10 +94,12 @@
                   <span>Store</span>
                   <select id="storeSelect" data-store-select="admin" aria-label="Select admin store">
                     {% for option in store_options %}
-                      <option value="{{ option.id }}" data-slug="{{ option.slug }}">{{ option.name }}</option>
+                      <option value="{{ option.id }}" data-slug="{{ option.slug }}" {% if selected_store and option.id == selected_store.id %}selected{% endif %}>{{ option.name }}</option>
                     {% endfor %}
                   </select>
                 </label>
+              {% elif selected_store %}
+                <span class="date-pill">{{ selected_store.name }}</span>
               {% endif %}
               <span class="date-pill">{{ today_label }}</span>
               <span class="admin-avatar">{{ current_user.username[:1]|upper }}</span>
@@ -145,7 +148,7 @@
         <nav class="topnav">
           <a href="{{ url_for('customer.menu', store=selected_store.slug, table=active_table.id) if active_table and selected_store else (url_for('customer.menu', store=selected_store.slug) if selected_store else url_for('customer.menu')) }}">Menu</a>
           <a href="{{ url_for('customer.cart', store=selected_store.slug, table=active_table.id) if active_table and selected_store else (url_for('customer.cart', store=selected_store.slug) if selected_store else url_for('customer.cart')) }}">Cart</a>
-          <a href="{{ url_for('admin.login') }}">Admin</a>
+          <a href="{{ url_for('admin.login', store=selected_store.slug) if selected_store else url_for('admin.login') }}">Admin</a>
         </nav>
       </header>
 

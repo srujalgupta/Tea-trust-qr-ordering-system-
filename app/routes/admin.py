@@ -12,6 +12,7 @@ from app.services.auth_service import (
 )
 from app.services.errors import AppError
 from app.services.security import generate_csrf_token
+from app.services.store_service import get_store
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -36,17 +37,40 @@ def _safe_next_url(target):
     return target
 
 
+def _store_from_login_request(store_slug=None):
+    store_ref = (
+        store_slug
+        or request.form.get("store")
+        or request.args.get("store")
+        or request.args.get("store_id")
+    )
+    return get_store(store_ref) if store_ref else None
+
+
+def _default_admin_url(user, store=None):
+    if store and user.can_access_store(store.id):
+        return url_for(_default_admin_endpoint(user), store=store.slug)
+    if getattr(user, "store", None) and user.can_access_store(user.store.id):
+        return url_for(_default_admin_endpoint(user), store=user.store.slug)
+    return url_for(_default_admin_endpoint(user))
+
+
 @admin_bp.get("/")
 def index():
     if current_user.is_authenticated and current_user.is_admin:
-        return redirect(url_for(_default_admin_endpoint(current_user)))
+        return redirect(_default_admin_url(current_user, _store_from_login_request()))
+    store_ref = request.args.get("store") or request.args.get("store_id")
+    if store_ref:
+        return redirect(url_for("admin.login", store=store_ref))
     return redirect(url_for("admin.login"))
 
 
 @admin_bp.route("/login", methods=["GET", "POST"])
-def login():
+@admin_bp.route("/<store_slug>/login", methods=["GET", "POST"])
+def login(store_slug=None):
+    login_store = _store_from_login_request(store_slug)
     if current_user.is_authenticated and current_user.is_admin:
-        return redirect(url_for(_default_admin_endpoint(current_user)))
+        return redirect(_default_admin_url(current_user, login_store))
 
     if request.method == "POST":
         try:
@@ -57,6 +81,13 @@ def login():
         except AppError as exc:
             flash(exc.message, "error")
         else:
+            if login_store and not user.can_access_store(login_store.id):
+                flash(
+                    f"This login is for {login_store.name}. Use a {login_store.name} profile or an owner account.",
+                    "error",
+                )
+                return render_template("admin/login.html", store=login_store)
+
             session.clear()
             login_user(user)
             session.permanent = True
@@ -64,10 +95,10 @@ def login():
             flash("Logged in successfully.", "success")
             return redirect(
                 _safe_next_url(request.args.get("next"))
-                or url_for(_default_admin_endpoint(user))
+                or _default_admin_url(user, login_store)
             )
 
-    return render_template("admin/login.html")
+    return render_template("admin/login.html", store=login_store)
 
 
 @admin_bp.post("/logout")

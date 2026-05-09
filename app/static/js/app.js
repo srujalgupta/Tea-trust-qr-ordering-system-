@@ -26,6 +26,9 @@ function storeBySlug(storeSlug) {
 }
 
 function selectedStore() {
+  const currentPageStore = storeById(bodyStore.id) || storeBySlug(bodyStore.slug);
+  if (currentPageStore) return currentPageStore;
+
   const isAdminPage = pageId.startsWith("admin-");
   if (isAdminPage) {
     const saved = localStorage.getItem(adminStoreKey);
@@ -77,7 +80,13 @@ function setupStoreSelector() {
       const storeSlug = option?.dataset.slug || storeById(storeId)?.slug || "";
       if (mode === "admin") {
         localStorage.setItem(adminStoreKey, storeId);
-        window.location.reload();
+        const nextUrl = new URL(window.location.href);
+        if (storeSlug) {
+          nextUrl.searchParams.set("store", storeSlug);
+        } else {
+          nextUrl.searchParams.set("store", storeId);
+        }
+        window.location.href = `${nextUrl.pathname}${nextUrl.search}`;
         return;
       }
       const nextUrl = new URL(window.location.href);
@@ -1514,7 +1523,7 @@ function initAdminDashboard() {
   }
 
   async function updateOrderStatus(orderId, status, cancellationReason = "") {
-    await apiFetch(`/api/v1/admin/orders/${orderId}/status`, {
+    await apiFetch(urlWithStore(`/api/v1/admin/orders/${orderId}/status`), {
       method: "PATCH",
       body: {
         status,
@@ -1961,7 +1970,7 @@ function initKitchenDisplay() {
   board.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-kitchen-status]");
     if (!button) return;
-    await apiFetch(`/api/v1/admin/orders/${button.dataset.orderId}/status`, {
+    await apiFetch(urlWithStore(`/api/v1/admin/orders/${button.dataset.orderId}/status`), {
       method: "PATCH",
       body: { status: button.dataset.kitchenStatus },
     });

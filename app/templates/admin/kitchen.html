@@ -11,7 +11,7 @@
       <h1>Kitchen Display</h1>
       <p class="helper-text">Pending, preparing, and ready orders update live.</p>
     </div>
-    <a class="button" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+    <a class="button" href="{{ url_for('admin.dashboard', store=default_store.slug) if default_store else url_for('admin.dashboard') }}">Dashboard</a>
   </section>
 
   <section class="kitchen-board" aria-live="polite">

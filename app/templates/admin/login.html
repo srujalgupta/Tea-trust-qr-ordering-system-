@@ -4,11 +4,27 @@
 {% block page_id %}admin-login{% endblock %}
 
 {% block content %}
+  {% set login_store = store if store is defined and store else default_store %}
   <section class="auth-panel">
     <p class="eyebrow">Admin</p>
     <h1>Sign in</h1>
+    {% if login_store %}
+      <p class="helper-text">Staff access for {{ login_store.name }}.</p>
+    {% endif %}
     <form class="form-stack" method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if store_options|length > 1 %}
+        <label>
+          Store
+          <select name="store" required>
+            {% for option in store_options %}
+              <option value="{{ option.slug }}" {% if login_store and option.id == login_store.id %}selected{% endif %}>{{ option.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      {% elif login_store %}
+        <input type="hidden" name="store" value="{{ login_store.slug }}">
+      {% endif %}
       <label>
         Username
         <input name="username" autocomplete="username" required>

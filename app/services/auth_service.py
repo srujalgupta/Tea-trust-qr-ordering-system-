@@ -45,12 +45,20 @@ def admin_required(view):
     return permission_required(None)(view)
 
 
+def _login_redirect():
+    values = {"next": request.full_path}
+    store_ref = request.args.get("store") or request.args.get("store_id")
+    if store_ref:
+        values["store"] = store_ref
+    return redirect(url_for("admin.login", **values))
+
+
 def permission_required(permission):
     def decorator(view):
         @wraps(view)
         def wrapped(*args, **kwargs):
             if not current_user.is_authenticated:
-                return redirect(url_for("admin.login", next=request.full_path))
+                return _login_redirect()
             if not current_user.is_admin:
                 raise ForbiddenError("Staff access is required.")
             if permission and not current_user.can(permission):
@@ -107,7 +115,7 @@ def owner_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         if not current_user.is_authenticated:
-            return redirect(url_for("admin.login", next=request.full_path))
+            return _login_redirect()
         if not current_user.is_admin:
             raise ForbiddenError("Staff access is required.")
         if current_user.role != "owner":

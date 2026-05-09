@@ -11,7 +11,7 @@
     <p>{{ cafe.tagline }} ordering is ready with menu, cart, token tracking, pay-at-counter billing, admin dashboard, and table QR flow.</p>
     <div class="hero-actions">
       <a class="button primary" href="{{ url_for('customer.menu') }}">Open menu</a>
-      <a class="button" href="{{ url_for('admin.login') }}">Admin login</a>
+      <a class="button" href="{{ url_for('admin.login', store=default_store.slug) if default_store else url_for('admin.login') }}">Admin login</a>
       <a class="button ghost" href="{{ url_for('health.health_check') }}">Health check</a>
     </div>
   </section>
