@@ -4,16 +4,19 @@ from app.extensions import db
 from app.models import CustomerContact, DailyToken, Order, OrderItem, Payment
 from app.services.auth_service import ensure_admin_user
 from app.services.sample_data import seed_sample_data
+from app.services.schema_service import ensure_runtime_schema
 
 
 def register_commands(app):
     @app.cli.command("init-db")
     def init_db():
         db.create_all()
-        click.echo("Database tables created.")
+        ensure_runtime_schema(app)
+        click.echo("Database tables created and upgraded.")
 
     @app.cli.command("seed-data")
     def seed_data():
+        ensure_runtime_schema(app)
         seed_sample_data(app.config)
         click.echo("Tea Trust Cafe menu, tables, and admin user are ready.")
 
