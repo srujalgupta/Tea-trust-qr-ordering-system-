@@ -1975,6 +1975,13 @@ body.qr-print-page {
   background: var(--soft);
   padding: 20px;
   animation: none;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.qr-print-page * {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 .qr-print-page .print-grid {
@@ -3265,8 +3272,41 @@ body.qr-print-page {
     width: 100%;
     max-width: 148mm;
     margin: 0 auto;
+    border-color: #dce4e8 !important;
     border-radius: 18px;
+    background: #fff !important;
     page-break-after: always;
+  }
+
+  .qr-print-page .print-head {
+    background: #1f7a5c !important;
+    color: #fff !important;
+  }
+
+  .qr-print-page .print-logo {
+    border-color: #fff !important;
+    background: #000 !important;
+  }
+
+  .qr-print-page .print-kicker {
+    color: #c85f28 !important;
+  }
+
+  .qr-print-page .print-qr-card h1 {
+    color: #1f7a5c !important;
+  }
+
+  .qr-print-page .print-qr-frame {
+    border-color: #dce4e8 !important;
+    background: #fff !important;
+  }
+
+  .qr-print-page .print-help {
+    color: #1d2328 !important;
+  }
+
+  .qr-print-page small {
+    color: #65717b !important;
   }
 
   .qr-print-page .print-qr-card:last-child {
