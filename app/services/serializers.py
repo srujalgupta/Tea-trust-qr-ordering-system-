@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from .wait_time_service import estimate_wait_for_order
+
 
 def money_to_float(value):
     if value is None:
@@ -113,6 +115,7 @@ def serialize_payment(payment):
 
 def serialize_order(order):
     token = order.daily_token
+    wait_estimate = estimate_wait_for_order(order)
     return {
         "id": order.id,
         "order_number": order.order_number,
@@ -135,6 +138,11 @@ def serialize_order(order):
         "status": order.status,
         "token_number": token.token_number if token else None,
         "token_status": token.status if token else None,
+        "estimated_wait_minutes_min": wait_estimate["estimated_wait_minutes_min"],
+        "estimated_wait_minutes_max": wait_estimate["estimated_wait_minutes_max"],
+        "estimated_wait_label": wait_estimate["estimated_wait_label"],
+        "wait_queue_order_count": wait_estimate["queue_order_count"],
+        "wait_queue_item_count": wait_estimate["queue_item_count"],
         "created_at": order.created_at.isoformat() if order.created_at else None,
         "updated_at": order.updated_at.isoformat() if order.updated_at else None,
         "items": [

@@ -3,6 +3,7 @@ from flask import Blueprint, current_app, render_template, request
 from app.services.order_service import get_order, verify_customer_order_access
 from app.services.table_service import get_table
 from app.services.store_service import get_store
+from app.services.wait_time_service import estimate_wait_for_order
 
 
 customer_bp = Blueprint("customer", __name__)
@@ -54,6 +55,7 @@ def order_status(order_id):
     return render_template(
         "customer/order_status.html",
         order=order,
+        wait_estimate=estimate_wait_for_order(order),
         store=order.store,
         table=order.table,
     )

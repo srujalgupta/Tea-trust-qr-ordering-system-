@@ -18,7 +18,7 @@
       {% if order.daily_token %}Token {{ order.daily_token.token_number }}{% else %}Payment pending{% endif %}
     </h1>
     <p id="tokenStatus" class="status-pill status-{{ order.status }}">{{ order.status.replace("_", " ").title() }}</p>
-    <p id="estimatedWait" class="success-wait">Estimated wait: 12-18 minutes</p>
+    <p id="estimatedWait" class="success-wait">{{ wait_estimate.estimated_wait_label }}</p>
     <p id="paymentNotice" class="payment-notice">Pay at store. Please pay directly at the counter when collecting your order.</p>
     <div class="success-actions">
       <a class="button primary" id="successBackToMenu" href="{{ url_for('customer.menu', store=order.store.slug, table=order.table.id) if order.table and order.store else (url_for('customer.menu', store=order.store.slug) if order.store else url_for('customer.menu')) }}">Back to menu</a>

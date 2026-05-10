@@ -727,6 +727,10 @@ function initCustomerCartPage() {
   const cartSubtotalEl = document.getElementById("cartSubtotal");
   const cartTotalEl = document.getElementById("cartTotal");
   const cartMessage = document.getElementById("cartMessage");
+  const waitEstimateEls = [
+    document.getElementById("cartWaitEstimate"),
+    document.getElementById("checkoutWaitEstimate"),
+  ].filter(Boolean);
   const clearCartButton = document.getElementById("clearCart");
   const checkoutPageButton = document.getElementById("checkoutPageButton");
   const placeOrderButton = document.getElementById("placeOrder");
@@ -735,6 +739,8 @@ function initCustomerCartPage() {
   let items = [];
   let cart = JSON.parse(localStorage.getItem(cartKey) || "{}");
   let itemNotes = JSON.parse(localStorage.getItem(itemNotesKey) || "{}");
+  let waitEstimateTimer = null;
+  let waitEstimateRequestId = 0;
 
   if (shell.dataset.tableId) {
     localStorage.setItem(tableKey, shell.dataset.tableId);
@@ -766,6 +772,53 @@ function initCustomerCartPage() {
       stats.total += item.price * quantity;
       return stats;
     }, { count: 0, total: 0 });
+  }
+
+  function cartEstimateItems() {
+    return Object.entries(cart)
+      .filter(([id, quantity]) => quantity > 0 && items.some((item) => String(item.id) === String(id)))
+      .map(([menu_item_id, quantity]) => ({
+        menu_item_id: Number(menu_item_id),
+        quantity,
+      }));
+  }
+
+  function setWaitEstimateText(text) {
+    waitEstimateEls.forEach((element) => {
+      element.textContent = text;
+    });
+  }
+
+  function scheduleWaitEstimate() {
+    if (!waitEstimateEls.length) return;
+    window.clearTimeout(waitEstimateTimer);
+    waitEstimateRequestId += 1;
+    const requestId = waitEstimateRequestId;
+    const { count } = cartStats();
+    if (!count) {
+      setWaitEstimateText("Add items to see wait time");
+      return;
+    }
+
+    setWaitEstimateText("Updating wait time...");
+    waitEstimateTimer = window.setTimeout(async () => {
+      try {
+        const payload = await apiFetch("/api/v1/orders/wait-estimate", {
+          method: "POST",
+          body: {
+            store_id: storeId,
+            table_id: tableId,
+            items: cartEstimateItems(),
+          },
+        });
+        if (requestId !== waitEstimateRequestId) return;
+        setWaitEstimateText(payload.estimated_wait_label || "Estimated wait updating");
+      } catch {
+        if (requestId === waitEstimateRequestId) {
+          setWaitEstimateText("Wait time updates at checkout");
+        }
+      }
+    }, 250);
   }
 
   function renderCart() {
@@ -817,6 +870,7 @@ function initCustomerCartPage() {
     } else if (!cartMessage.textContent.includes("Creating order")) {
       cartMessage.textContent = "";
     }
+    scheduleWaitEstimate();
   }
 
   async function placeOrder() {
@@ -1045,6 +1099,7 @@ function orderDetailsHtml(order) {
 }
 
 function estimatedWaitLabel(order) {
+  if (order.estimated_wait_label) return order.estimated_wait_label;
   if (order.status === "ready") return "Ready now";
   if (order.status === "completed") return "Completed";
   if (order.status === "cancelled") return "Order cancelled";

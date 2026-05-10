@@ -47,6 +47,7 @@ from app.services.user_service import (
     role_options_payload,
     update_staff_profile,
 )
+from app.services.wait_time_service import estimate_wait_for_cart
 
 
 api_bp = Blueprint("api", __name__, url_prefix="/api/v1")
@@ -111,6 +112,11 @@ def create_customer_order():
     if payment:
         payload["payment"] = payment
     return jsonify(payload), 201
+
+
+@api_bp.post("/orders/wait-estimate")
+def customer_order_wait_estimate():
+    return jsonify(estimate_wait_for_cart(_json_body()))
 
 
 @api_bp.get("/orders/<int:order_id>")
