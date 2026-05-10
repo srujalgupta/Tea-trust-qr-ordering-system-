@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from app import create_app
 from app.extensions import db
-from app.models import CafeTable, MenuItem, Store
+from app.models import CafeTable, CustomerContact, MenuItem, Order, Store
 from app.services.menu_service import menu_payload
 from app.services.order_service import create_order, list_orders
 from app.services.sample_data import seed_sample_data
@@ -225,3 +225,53 @@ def test_store_specific_login_rejects_staff_from_another_store():
 
     assert login.status_code == 200
     assert b"This login is for Store 2" in login.data
+
+
+def test_reset_orders_command_can_clear_one_store_only():
+    app = create_app("testing")
+
+    with app.app_context():
+        db.create_all()
+        seed_sample_data(app.config)
+
+        store_1 = Store.query.filter_by(slug="store-1").first()
+        store_2 = Store.query.filter_by(slug="store-2").first()
+        store_1_id = store_1.id
+        store_2_id = store_2.id
+        store_1_item = MenuItem.query.filter_by(store_id=store_1.id).first()
+        store_2_item = MenuItem.query.filter_by(store_id=store_2.id).first()
+
+        create_order(
+            {
+                "store_id": store_1.id,
+                "payment_method": "cash",
+                "customer_name": "Store One Customer",
+                "customer_phone": "98765 43210",
+                "marketing_opt_in": True,
+                "items": [{"menu_item_id": store_1_item.id, "quantity": 1}],
+            },
+            app.config,
+        )
+        create_order(
+            {
+                "store_id": store_2.id,
+                "payment_method": "cash",
+                "customer_name": "Store Two Customer",
+                "customer_phone": "98765 43211",
+                "marketing_opt_in": True,
+                "items": [{"menu_item_id": store_2_item.id, "quantity": 1}],
+            },
+            app.config,
+        )
+
+    result = app.test_cli_runner().invoke(
+        args=["reset-orders", "--store", "store-1", "--yes", "--keep-customers"]
+    )
+
+    assert result.exit_code == 0, result.output
+    with app.app_context():
+        assert Order.query.filter_by(store_id=store_1_id).count() == 0
+        assert Order.query.filter_by(store_id=store_2_id).count() == 1
+        store_1_contact = CustomerContact.query.filter_by(store_id=store_1_id).one()
+        assert store_1_contact.last_order_id is None
+        assert CustomerContact.query.filter_by(store_id=store_2_id).count() == 1
