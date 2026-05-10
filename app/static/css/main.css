@@ -1970,6 +1970,111 @@ p {
   overflow-wrap: anywhere;
 }
 
+body.qr-print-page {
+  min-height: auto;
+  background: var(--soft);
+  padding: 20px;
+  animation: none;
+}
+
+.qr-print-page .print-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.qr-print-page .print-qr-card {
+  width: min(100%, 520px);
+  margin: 0 auto;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  border: 3px solid var(--line);
+  border-radius: 24px;
+  background: #fff;
+  overflow: hidden;
+  text-align: center;
+}
+
+.qr-print-page .print-head {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 26px 28px 20px;
+  background: var(--accent);
+  color: #fff;
+}
+
+.qr-print-page .print-logo {
+  width: 96px;
+  height: 96px;
+  border: 5px solid #fff;
+  border-radius: 999px;
+  display: block;
+  object-fit: cover;
+  background: #000;
+}
+
+.qr-print-page .print-head strong {
+  max-width: 100%;
+  font-size: 28px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.qr-print-page .print-body {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 26px 30px 30px;
+}
+
+.qr-print-page .print-kicker {
+  margin: 0;
+  color: var(--warm);
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.qr-print-page .print-qr-card h1 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 48px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.qr-print-page .print-qr-frame {
+  width: 340px;
+  max-width: 100%;
+  border: 2px solid var(--line);
+  border-radius: 22px;
+  background: #fff;
+  padding: 14px;
+}
+
+.qr-print-page .print-qr {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+}
+
+.qr-print-page .print-help {
+  margin: 0;
+  color: var(--ink);
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.qr-print-page small {
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .table-qr-main {
   min-width: 0;
   display: grid;
@@ -3143,6 +3248,29 @@ p {
   .qr-preview {
     height: auto;
     justify-items: center;
+  }
+}
+
+@media print {
+  body.qr-print-page {
+    background: #fff;
+    padding: 0;
+  }
+
+  .qr-print-page .print-grid {
+    display: block;
+  }
+
+  .qr-print-page .print-qr-card {
+    width: 100%;
+    max-width: 148mm;
+    margin: 0 auto;
+    border-radius: 18px;
+    page-break-after: always;
+  }
+
+  .qr-print-page .print-qr-card:last-child {
+    page-break-after: auto;
   }
 }
 

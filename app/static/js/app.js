@@ -2339,6 +2339,8 @@ function initAdminTables() {
   }
 
   function printTables(tables) {
+    const stylesheetUrl = document.querySelector('link[rel="stylesheet"][href*="main.css"]')?.href
+      || `${window.location.origin}/static/css/main.css`;
     const content = tables.map((table) => {
       const menuUrl = `${window.location.origin}${table.menu_url}`;
       return `
@@ -2359,47 +2361,23 @@ function initAdminTables() {
         </section>
       `;
     }).join("");
-    const printWindow = window.open("", "qr-print");
+    const printWindow = window.open("", `qr-print-${Date.now()}`);
     if (!printWindow) return;
+    printWindow.document.open();
     printWindow.document.write(`
       <!doctype html>
-      <title>Table QR Codes</title>
-      <style>
-        * { box-sizing: border-box; }
-        body { background: #f6f8f7; font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 20px; color: #1d2328; }
-        .print-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        .print-qr-card {
-          width: min(100%, 520px);
-          margin: 0 auto;
-          break-inside: avoid;
-          page-break-inside: avoid;
-          border: 3px solid #dce4e8;
-          border-radius: 24px;
-          background: #fff;
-          overflow: hidden;
-          text-align: center;
-        }
-        .print-head { display: grid; justify-items: center; gap: 10px; padding: 26px 28px 20px; background: #1f7a5c; color: #fff; }
-        .print-logo { width: 96px; height: 96px; border-radius: 999px; object-fit: cover; background: #000; border: 5px solid #fff; }
-        .print-head strong { max-width: 100%; font-size: 28px; line-height: 1.15; overflow-wrap: anywhere; }
-        .print-body { display: grid; justify-items: center; gap: 14px; padding: 26px 30px 30px; }
-        .print-kicker { margin: 0; color: #c85f28; font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
-        .print-qr-card h1 { margin: 0; color: #1f7a5c; font-size: 48px; line-height: 1.05; overflow-wrap: anywhere; }
-        .print-qr-frame { width: 340px; max-width: 100%; border: 2px solid #dce4e8; border-radius: 22px; background: #fff; padding: 14px; }
-        .print-qr { width: 100%; aspect-ratio: 1; display: block; }
-        .print-help { margin: 0; color: #1d2328; font-size: 19px; font-weight: 800; }
-        small { color: #65717b; overflow-wrap: anywhere; font-size: 11px; line-height: 1.35; }
-        @page { size: A4 portrait; margin: 10mm; }
-        @media print {
-          body { background: #fff; padding: 0; }
-          .print-grid { display: block; }
-          .print-qr-card { width: 100%; max-width: 148mm; margin: 0 auto; page-break-after: always; border-radius: 18px; }
-          .print-qr-card:last-child { page-break-after: auto; }
-        }
-      </style>
-      <body><main class="print-grid">${content}</main></body>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Table QR Codes</title>
+          <link rel="stylesheet" href="${escapeHtml(stylesheetUrl)}">
+        </head>
+        <body class="qr-print-page"><main class="print-grid">${content}</main></body>
+      </html>
     `);
     printWindow.document.close();
+    const stylesheet = printWindow.document.querySelector('link[rel="stylesheet"]');
     const images = [...printWindow.document.images];
     let printed = false;
     const printReady = () => {
@@ -2408,6 +2386,12 @@ function initAdminTables() {
       printWindow.focus();
       printWindow.print();
     };
+    const stylesheetLoad = stylesheet
+      ? new Promise((resolve) => {
+        stylesheet.addEventListener("load", resolve, { once: true });
+        stylesheet.addEventListener("error", resolve, { once: true });
+      })
+      : Promise.resolve();
     const imageLoads = images.map((image) => {
       if (image.complete) return Promise.resolve();
       return new Promise((resolve) => {
@@ -2415,8 +2399,8 @@ function initAdminTables() {
         image.addEventListener("error", resolve, { once: true });
       });
     });
-    Promise.all(imageLoads).then(printReady);
-    window.setTimeout(printReady, 1600);
+    Promise.all([stylesheetLoad, ...imageLoads]).then(printReady);
+    window.setTimeout(printReady, 2400);
   }
 
   async function load() {
