@@ -135,16 +135,6 @@
             {% endif %}
           </span>
         </a>
-        {% if store_options|length > 1 %}
-          <label class="store-switcher customer-store-switcher">
-            <span>Store</span>
-            <select id="storeSelect" data-store-select="customer" aria-label="Select store">
-              {% for option in store_options %}
-                <option value="{{ option.id }}" data-slug="{{ option.slug }}" {% if selected_store and option.id == selected_store.id %}selected{% endif %}>{{ option.name }}</option>
-              {% endfor %}
-            </select>
-          </label>
-        {% endif %}
         <nav class="topnav">
           <a href="{{ url_for('customer.menu', store=selected_store.slug, table=active_table.id) if active_table and selected_store else (url_for('customer.menu', store=selected_store.slug) if selected_store else url_for('customer.menu')) }}">Menu</a>
           <a href="{{ url_for('customer.cart', store=selected_store.slug, table=active_table.id) if active_table and selected_store else (url_for('customer.cart', store=selected_store.slug) if selected_store else url_for('customer.cart')) }}">Cart</a>
