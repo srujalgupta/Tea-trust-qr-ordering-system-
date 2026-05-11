@@ -339,6 +339,7 @@ body[data-page="customer-menu"] .topbar {
 }
 
 body[data-page="customer-menu"] .shell {
+  animation: page-fade-in 0.32s var(--ease-out) both;
   padding-bottom: 128px;
 }
 
