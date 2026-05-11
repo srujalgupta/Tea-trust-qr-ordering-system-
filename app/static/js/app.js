@@ -996,9 +996,14 @@ function initCustomerCartPage() {
   }
 
   function renderCart() {
-    const rows = Object.entries(cart).map(([id, quantity]) => {
-      const item = items.find((candidate) => String(candidate.id) === String(id));
-      if (!item || quantity <= 0) return "";
+    const lineItems = Object.entries(cart)
+      .map(([id, quantity]) => ({
+        id,
+        quantity,
+        item: items.find((candidate) => String(candidate.id) === String(id)),
+      }))
+      .filter(({ item, quantity }) => item && quantity > 0);
+    const rows = lineItems.map(({ id, quantity, item }) => {
       const lineTotal = Number(item.price || 0) * quantity;
       const noteField = checkoutMode
         ? `<label class="item-note-field">
@@ -1007,28 +1012,37 @@ function initCustomerCartPage() {
           </label>`
         : "";
       return `
-        <div class="cart-row cart-page-row">
-          ${imageTag(item, "cart-thumb")}
+        <div class="cart-row cart-page-row cart-bill-row">
           <div class="cart-line-main">
             <strong>${escapeHtml(item.name)}</strong>
-            <p class="helper-text">${money(item.price)} each</p>
             <button class="link-button remove-line" data-remove-item="${id}" type="button">Remove item</button>
             ${noteField}
           </div>
-          <div class="cart-line-side">
-            <strong>${money(lineTotal)}</strong>
+          <span class="cart-line-rate">${money(item.price)}</span>
+          <div class="cart-line-quantity">
             <div class="stepper" aria-label="Quantity for ${escapeHtml(item.name)}">
               <button type="button" data-step="${id}" data-delta="-1">-</button>
               <span>${quantity}</span>
               <button type="button" data-step="${id}" data-delta="1">+</button>
             </div>
           </div>
+          <strong class="cart-line-total">${money(lineTotal)}</strong>
         </div>
       `;
     }).join("");
     const { count, total } = cartStats();
     cartItemSummaryEl.textContent = `${count} item${count === 1 ? "" : "s"} in this order`;
-    cartItemsEl.innerHTML = rows || `
+    cartItemsEl.innerHTML = rows ? `
+      <div class="cart-bill-table" role="table" aria-label="Bill items">
+        <div class="cart-bill-head" role="row">
+          <span>Item</span>
+          <span>Rate</span>
+          <span>Qty</span>
+          <span>Amount</span>
+        </div>
+        ${rows}
+      </div>
+    ` : `
       <div class="empty-cart-state">
         <p class="helper-text">Your cart is empty.</p>
         <a class="button" href="${customerPageUrl("/menu")}">Browse menu</a>
@@ -1189,15 +1203,42 @@ function formatBillDate(value) {
 function receiptHtml(order, options = {}) {
   const billTitle = options.title || "Bill";
   const showCustomer = options.showCustomer || Boolean(order.customer_name || order.customer_phone);
-  const lines = (order.items || []).map((item) => (
-    `<div class="receipt-item">
-      <span>${escapeHtml(item.item_name)} <small>x ${item.quantity}</small></span>
-      <strong>${money(item.line_total)}</strong>
-    </div>`
-  )).join("");
+  const lines = (order.items || []).map((item) => {
+    const quantity = Number(item.quantity || 0);
+    const rate = Number(item.unit_price || 0);
+    const amount = Number(item.line_total || rate * quantity);
+    return `<div class="receipt-item" role="row">
+      <span class="receipt-item-name" role="cell">
+        <strong>${escapeHtml(item.item_name)}</strong>
+        <small>${quantity} x ${money(rate)}</small>
+      </span>
+      <span class="receipt-item-rate" role="cell">${money(rate)}</span>
+      <span class="receipt-item-qty" role="cell">${quantity}</span>
+      <strong class="receipt-item-amount" role="cell">${money(amount)}</strong>
+    </div>`;
+  }).join("");
+  const billItems = lines
+    ? `<div class="receipt-items" role="table" aria-label="Bill items">
+        <div class="receipt-item receipt-item-head" role="row">
+          <span role="columnheader">Item</span>
+          <span role="columnheader">Rate</span>
+          <span role="columnheader">Qty</span>
+          <span role="columnheader">Amount</span>
+        </div>
+        ${lines}
+      </div>`
+    : `<p class="helper-text">No bill items found.</p>`;
+  const orderNumber = order.order_number || `#${order.id || ""}`;
+  const tokenLabel = order.token_number ? `Token ${order.token_number}` : "Token pending";
+  const tableLabel = order.table_label || "Takeaway";
+  const status = String(order.status || "pending").replaceAll("_", " ");
+  const paymentStatus = paymentLabel(order);
+  const paymentNote = order.payment_status === "paid"
+    ? "Payment received at store."
+    : "Payment pending at the counter.";
   const customerRows = showCustomer
-    ? `<p><strong>Customer</strong><span>${escapeHtml(order.customer_name || "Guest")}</span></p>
-       <p><strong>Phone</strong><span>${escapeHtml(order.customer_phone || "Not shared")}</span></p>`
+    ? `<div><span>Customer</span><strong>${escapeHtml(order.customer_name || "Guest")}</strong></div>
+       <div><span>Phone</span><strong>${escapeHtml(order.customer_phone || "Not shared")}</strong></div>`
     : "";
   return `
     <section class="receipt-card">
@@ -1205,26 +1246,25 @@ function receiptHtml(order, options = {}) {
         <div>
           <p class="eyebrow">${escapeHtml(billTitle)}</p>
           <h2>${escapeHtml(cafeName)}</h2>
-          <span>Bill ${escapeHtml(order.order_number)}</span>
+          <span>Bill ${escapeHtml(orderNumber)}</span>
           <small>${escapeHtml(formatBillDate(order.created_at))}</small>
         </div>
-        <strong>${order.token_number ? `Token ${order.token_number}` : "Token pending"}</strong>
+        <strong>${escapeHtml(tokenLabel)}</strong>
       </header>
-      <div class="order-detail-grid receipt-meta-grid">
-        <p><strong>Status</strong><span>${escapeHtml(order.status.replaceAll("_", " "))}</span></p>
-        <p><strong>Payment</strong><span>${escapeHtml(paymentLabel(order))}</span></p>
-        <p><strong>Store</strong><span>${escapeHtml(order.store_name || selectedStoreName())}</span></p>
-        <p><strong>Table</strong><span>${escapeHtml(order.table_label || "Takeaway")}</span></p>
-        <p><strong>Total</strong><span>${money(order.total_amount)}</span></p>
+      <div class="receipt-info-grid">
+        <div><span>Status</span><strong>${escapeHtml(status)}</strong></div>
+        <div><span>Payment</span><strong>${escapeHtml(paymentStatus)}</strong></div>
+        <div><span>Table</span><strong>${escapeHtml(tableLabel)}</strong></div>
+        <div><span>Store</span><strong>${escapeHtml(order.store_name || selectedStoreName())}</strong></div>
         ${customerRows}
       </div>
-      <div class="receipt-items">${lines}</div>
+      ${billItems}
       <div class="receipt-lines receipt-total-lines">
         <div><span>Item subtotal</span><strong>${money(order.subtotal_amount)}</strong></div>
         <div><span>Taxes</span><strong>${money(order.tax_amount)}</strong></div>
         <div class="receipt-grand-total"><span>Total payable</span><strong>${money(order.total_amount)}</strong></div>
       </div>
-      <p class="receipt-payment-note">${order.payment_status === "paid" ? "Payment received at store." : "Payment pending at the counter."}</p>
+      <p class="receipt-payment-note">${escapeHtml(paymentNote)}</p>
     </section>
   `;
 }
@@ -1240,23 +1280,30 @@ function printBill(order) {
         <style>
           * { box-sizing: border-box; }
           body { margin: 0; background: #f6f8f7; color: #1d2328; font-family: Arial, Helvetica, sans-serif; padding: 24px; }
-          .receipt-card { max-width: 520px; margin: 0 auto; display: grid; gap: 14px; border: 1px solid #dce4e8; border-radius: 8px; background: #fff; padding: 18px; }
+          .receipt-card { max-width: 560px; margin: 0 auto; display: grid; gap: 14px; border: 1px solid #dce4e8; border-radius: 8px; background: #fff; padding: 18px; }
           .receipt-header { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px dashed #cbd7dc; padding-bottom: 12px; }
           .eyebrow { margin: 0 0 4px; color: #1f7a5c; font-size: 11px; font-weight: 900; letter-spacing: 0; text-transform: uppercase; }
           h2 { margin: 0 0 4px; font-size: 22px; }
           .receipt-header span, .receipt-header small { display: block; color: #65717b; font-weight: 800; }
           .receipt-header > strong { align-self: start; border-radius: 999px; background: #edf6f2; color: #1f7a5c; padding: 7px 10px; white-space: nowrap; }
-          .order-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-          .order-detail-grid p { min-height: 64px; display: grid; gap: 5px; margin: 0; border: 1px solid #dce4e8; border-radius: 8px; background: #f9fbfa; padding: 10px; }
-          .order-detail-grid strong { color: #1d2328; }
-          .order-detail-grid span { color: #65717b; text-transform: capitalize; overflow-wrap: anywhere; }
-          .receipt-items { display: grid; gap: 9px; }
-          .receipt-item, .receipt-lines div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed #e3ebee; padding-bottom: 8px; }
-          .receipt-item:last-child { border-bottom: 0; padding-bottom: 0; }
-          .receipt-item small { color: #65717b; font-weight: 800; }
-          .receipt-lines { display: grid; gap: 8px; border-top: 1px dashed #cbd7dc; padding-top: 10px; }
-          .receipt-grand-total { border-top: 1px solid #dce4e8; margin-top: 4px; padding-top: 8px; font-size: 18px; font-weight: 900; }
-          .receipt-payment-note { margin: 0; color: #65717b; }
+          .receipt-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+          .receipt-info-grid div { display: grid; gap: 3px; border: 1px solid #dce4e8; border-radius: 8px; background: #f9fbfa; padding: 9px; }
+          .receipt-info-grid span { color: #65717b; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+          .receipt-info-grid strong { color: #1d2328; overflow-wrap: anywhere; text-transform: capitalize; }
+          .receipt-items { border: 1px solid #dce4e8; border-radius: 8px; overflow: hidden; }
+          .receipt-item { display: grid; grid-template-columns: minmax(0, 1.6fr) 90px 54px 98px; gap: 10px; align-items: start; padding: 9px 10px; border-bottom: 1px dashed #e3ebee; }
+          .receipt-item:last-child { border-bottom: 0; }
+          .receipt-item-head { background: #f2f5f9; color: #65717b; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+          .receipt-item-name { display: grid; gap: 2px; min-width: 0; }
+          .receipt-item-name strong { color: #1d2328; overflow-wrap: anywhere; }
+          .receipt-item-name small, .receipt-item-rate, .receipt-item-qty { color: #65717b; font-weight: 800; }
+          .receipt-item-rate, .receipt-item-qty, .receipt-item-amount { text-align: right; }
+          .receipt-lines { display: grid; gap: 8px; border: 1px solid #dce4e8; border-radius: 8px; background: #fbfcfc; padding: 10px; }
+          .receipt-lines div { display: flex; justify-content: space-between; gap: 12px; color: #65717b; }
+          .receipt-lines strong { color: #1d2328; white-space: nowrap; }
+          .receipt-grand-total { border-top: 1px solid #dce4e8; margin-top: 2px; padding-top: 8px; color: #1d2328 !important; font-size: 18px; font-weight: 900; }
+          .receipt-payment-note { margin: 0; border: 1px solid #bfe2d4; border-radius: 8px; background: #effaf5; color: #1f7a5c; padding: 10px; font-weight: 900; }
+          .helper-text { margin: 0; color: #65717b; }
           @media print { body { background: #fff; padding: 0; } .receipt-card { border: 0; max-width: none; } }
         </style>
       </head>
