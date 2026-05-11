@@ -68,7 +68,10 @@
         </div>
 
         <div class="counter-item-picker">
-          <input id="counterItemSearch" type="search" placeholder="Type product name" autocomplete="off" aria-label="Search menu items">
+          <div class="counter-search-field">
+            <input id="counterItemSearch" type="search" placeholder="Product name / no." autocomplete="off" role="combobox" aria-expanded="false" aria-controls="counterItemSuggestions" aria-autocomplete="list" aria-label="Search menu items">
+            <div id="counterItemSuggestions" class="counter-item-suggestions" role="listbox" hidden></div>
+          </div>
           <select id="counterItemSelect" aria-label="Menu item">
             <option value="">Loading menu...</option>
           </select>

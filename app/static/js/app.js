@@ -413,7 +413,7 @@ document.addEventListener("error", (event) => {
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
   const animated = event.target.closest(
-    ".button, .icon-button, .chip, .customer-action-button, .admin-nav-link, .delivery-app-button, .menu-section-toggle, .stepper button",
+    ".button, .icon-button, .chip, .customer-action-button, .floating-cart-button, .admin-nav-link, .delivery-app-button, .menu-section-toggle, .stepper button",
   );
   if (animated) animatePress(animated);
 });
@@ -466,13 +466,16 @@ function initCustomerMenu() {
   const checkoutShortcutButton = document.getElementById("checkoutShortcut");
   const mobileCartShortcutButton = document.getElementById("mobileCartShortcut");
   const mobileCheckoutShortcutButton = document.getElementById("mobileCheckoutShortcut");
+  const floatingCartShortcutButton = document.getElementById("floatingCartShortcut");
   const cartCountEls = [
     document.getElementById("cartItemCount"),
     document.getElementById("mobileCartItemCount"),
+    document.getElementById("floatingCartItemCount"),
   ].filter(Boolean);
   const checkoutAmountEls = [
     document.getElementById("checkoutAmount"),
     document.getElementById("mobileCheckoutAmount"),
+    document.getElementById("floatingCartAmount"),
   ].filter(Boolean);
   const menuItemTotalEl = document.getElementById("menuItemTotal");
   const bestsellerTotalEl = document.getElementById("bestsellerTotal");
@@ -481,8 +484,10 @@ function initCustomerMenu() {
 
   let categories = [];
   let items = [];
+  let menuEntries = [];
   let openCategories = new Set();
   let cart = JSON.parse(localStorage.getItem(cartKey) || "{}");
+  let selectedVariantByEntry = {};
 
   if (tableId) {
     localStorage.setItem(tableKey, tableId);
@@ -493,12 +498,134 @@ function initCustomerMenu() {
     localStorage.setItem(cartKey, JSON.stringify(cart));
   }
 
+  function normalizedMenuKey(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function parseVariantName(name) {
+    const match = String(name || "").match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+    if (!match) {
+      return {
+        baseName: String(name || "").trim(),
+        variantLabel: "Regular",
+        hasVariant: false,
+      };
+    }
+    return {
+      baseName: match[1].trim(),
+      variantLabel: match[2].trim(),
+      hasVariant: true,
+    };
+  }
+
+  function variantSortRank(label) {
+    const normalized = normalizedMenuKey(label);
+    const preferredOrder = ["quarter", "half", "small", "regular", "medium", "full", "large", "plain", "grilled"];
+    const index = preferredOrder.indexOf(normalized);
+    return index === -1 ? preferredOrder.length : index;
+  }
+
+  function uniqueTagsForVariants(variants) {
+    const seen = new Set();
+    const variantLabels = new Set(variants.map((variant) => normalizedMenuKey(variant.variantLabel)));
+    variants.forEach((variant) => {
+      (variant.tags || []).forEach((tag) => {
+        const normalized = normalizedMenuKey(tag);
+        if (!normalized || ["veg", "bestseller"].includes(normalized) || variantLabels.has(normalized)) return;
+        seen.add(tag);
+      });
+    });
+    return [...seen];
+  }
+
+  function menuEntryFromGroup(group) {
+    const variants = group.rows
+      .map(({ item, parsed }) => ({
+        ...item,
+        variantLabel: parsed.variantLabel,
+      }))
+      .sort((first, second) => (
+        variantSortRank(first.variantLabel) - variantSortRank(second.variantLabel)
+        || Number(first.price || 0) - Number(second.price || 0)
+        || String(first.name).localeCompare(String(second.name))
+      ));
+    const primary = variants.find((variant) => variant.image_url) || variants[0];
+    const entryKey = group.rows.length > 1
+      ? `group-${primary.category_id}-${normalizedMenuKey(group.baseName)}`
+      : `item-${primary.id}`;
+    const entryName = group.rows.length > 1 ? group.baseName : primary.name;
+    const searchText = [
+      entryName,
+      primary.category_name,
+      ...variants.flatMap((variant) => [
+        variant.name,
+        variant.variantLabel,
+        variant.description,
+        ...(variant.tags || []),
+      ]),
+    ].join(" ").toLowerCase();
+
+    return {
+      key: entryKey,
+      category_id: primary.category_id,
+      category_name: primary.category_name,
+      name: entryName,
+      description: variants.find((variant) => variant.description)?.description || "",
+      image_url: primary.image_url || "",
+      is_veg: variants.every((variant) => variant.is_veg),
+      is_bestseller: variants.some((variant) => variant.is_bestseller),
+      tags: uniqueTagsForVariants(variants),
+      variants,
+      searchText,
+      firstIndex: group.firstIndex,
+    };
+  }
+
+  function rebuildMenuEntries() {
+    const variantGroups = new Map();
+    const directGroups = [];
+    items.forEach((item, index) => {
+      const parsed = parseVariantName(item.name);
+      if (!parsed.hasVariant) {
+        directGroups.push({
+          baseName: item.name,
+          rows: [{ item, parsed }],
+          firstIndex: index,
+        });
+        return;
+      }
+      const key = `${item.category_id}:${normalizedMenuKey(parsed.baseName)}`;
+      const group = variantGroups.get(key) || {
+        baseName: parsed.baseName,
+        rows: [],
+        firstIndex: index,
+      };
+      group.rows.push({ item, parsed });
+      group.firstIndex = Math.min(group.firstIndex, index);
+      variantGroups.set(key, group);
+    });
+
+    const groupedEntries = [...variantGroups.values()].flatMap((group) => {
+      if (group.rows.length > 1) return [menuEntryFromGroup(group)];
+      return group.rows.map(({ item, parsed }) => menuEntryFromGroup({
+        baseName: item.name,
+        rows: [{ item, parsed: { ...parsed, variantLabel: "Regular" } }],
+        firstIndex: group.firstIndex,
+      }));
+    });
+
+    menuEntries = [...groupedEntries, ...directGroups.map(menuEntryFromGroup)]
+      .sort((first, second) => first.firstIndex - second.firstIndex);
+  }
+
   function itemsForCategory(categoryId) {
     const q = searchInput.value.trim().toLowerCase();
-    return items.filter((item) => {
-      const inCategory = String(item.category_id) === String(categoryId);
-      const haystack = `${item.name} ${item.description} ${(item.tags || []).join(" ")}`.toLowerCase();
-      return inCategory && (!q || haystack.includes(q));
+    return menuEntries.filter((entry) => {
+      const inCategory = String(entry.category_id) === String(categoryId);
+      return inCategory && (!q || entry.searchText.includes(q));
     });
   }
 
@@ -537,9 +664,9 @@ function initCustomerMenu() {
   }
 
   function renderMenuStats() {
-    const bestsellerCount = items.filter((item) => item.is_bestseller).length;
+    const bestsellerCount = menuEntries.filter((entry) => entry.is_bestseller).length;
     if (menuItemTotalEl) {
-      menuItemTotalEl.textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
+      menuItemTotalEl.textContent = `${menuEntries.length} product${menuEntries.length === 1 ? "" : "s"}`;
     }
     if (bestsellerTotalEl) {
       bestsellerTotalEl.textContent = `${bestsellerCount} pick${bestsellerCount === 1 ? "" : "s"}`;
@@ -547,40 +674,78 @@ function initCustomerMenu() {
   }
 
   function renderMenu() {
-    function itemCard(item) {
-      const quantity = Number(cart[item.id] || 0);
-      const tags = (item.tags || [])
+    function selectedVariantFor(entry) {
+      const rememberedId = selectedVariantByEntry[entry.key];
+      const rememberedVariant = entry.variants.find((variant) => String(variant.id) === String(rememberedId));
+      if (rememberedVariant) return rememberedVariant;
+      const cartVariant = entry.variants.find((variant) => Number(cart[variant.id] || 0) > 0);
+      const selectedVariant = cartVariant || entry.variants[0];
+      selectedVariantByEntry[entry.key] = String(selectedVariant.id);
+      return selectedVariant;
+    }
+
+    function priceLabel(entry, selectedVariant) {
+      if (entry.variants.length < 2) return money(selectedVariant.price);
+      const prices = entry.variants.map((variant) => Number(variant.price || 0));
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      return minPrice === maxPrice ? money(minPrice) : `${money(minPrice)} - ${money(maxPrice)}`;
+    }
+
+    function itemCard(entry) {
+      const selectedVariant = selectedVariantFor(entry);
+      const quantity = Number(cart[selectedVariant.id] || 0);
+      const totalQuantity = entry.variants.reduce((total, variant) => total + Number(cart[variant.id] || 0), 0);
+      const hasVariants = entry.variants.length > 1;
+      const tags = (entry.tags || [])
         .filter((tag) => !["veg", "bestseller"].includes(String(tag).toLowerCase()))
         .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
         .join("");
+      const variantField = hasVariants
+        ? `<label class="item-variant-field">
+            <span>Size</span>
+            <select data-menu-variant="${escapeHtml(entry.key)}" aria-label="Choose size for ${escapeHtml(entry.name)}">
+              ${entry.variants.map((variant) => `
+                <option value="${variant.id}" ${String(variant.id) === String(selectedVariant.id) ? "selected" : ""}>
+                  ${escapeHtml(variant.variantLabel)} - ${money(variant.price)}
+                </option>
+              `).join("")}
+            </select>
+          </label>`
+        : "";
+      const cartPill = totalQuantity && !quantity
+        ? `<span class="in-cart-pill">${totalQuantity} in cart</span>`
+        : "";
       const itemAction = quantity
         ? `<div class="item-card-actions has-quantity">
-            <div class="menu-item-stepper stepper" aria-label="Quantity for ${escapeHtml(item.name)}">
-              <button type="button" data-menu-step="${item.id}" data-delta="-1">-</button>
+            <div class="menu-item-stepper stepper" aria-label="Quantity for ${escapeHtml(selectedVariant.name)}">
+              <button type="button" data-menu-step="${selectedVariant.id}" data-delta="-1">-</button>
               <span>${quantity}</span>
-              <button type="button" data-add="${item.id}">+</button>
+              <button type="button" data-add="${selectedVariant.id}">+</button>
             </div>
             <span class="in-cart-pill">In cart</span>
           </div>`
         : `<div class="item-card-actions">
-            <button class="button primary full-width" data-add="${item.id}" type="button">Add to cart</button>
+            <button class="button primary full-width" data-add="${selectedVariant.id}" type="button">${hasVariants ? `Add ${escapeHtml(selectedVariant.variantLabel)}` : "Add to cart"}</button>
+            ${cartPill}
           </div>`;
       return `
         <article class="item-card">
-          ${imageTag(item)}
+          ${imageTag(entry)}
           <div class="item-body">
             <div class="item-title">
-              <h3>${escapeHtml(item.name)}</h3>
-              <span class="price">${money(item.price)}</span>
+              <h3>${escapeHtml(entry.name)}</h3>
+              <span class="price">${priceLabel(entry, selectedVariant)}</span>
             </div>
             <div class="item-meta-row">
-              <span class="veg-indicator ${item.is_veg ? "is-veg" : "is-non-veg"}">
-                <span aria-hidden="true"></span>${item.is_veg ? "Veg" : "Non-veg"}
+              <span class="veg-indicator ${entry.is_veg ? "is-veg" : "is-non-veg"}">
+                <span aria-hidden="true"></span>${entry.is_veg ? "Veg" : "Non-veg"}
               </span>
-              ${item.is_bestseller ? `<span class="bestseller-chip">Popular</span>` : ""}
+              ${entry.is_bestseller ? `<span class="bestseller-chip">Popular</span>` : ""}
             </div>
-            <p>${escapeHtml(item.description)}</p>
+            <p>${escapeHtml(entry.description)}</p>
             ${tags ? `<div class="tag-row">${tags}</div>` : ""}
+            ${variantField}
             ${itemAction}
           </div>
         </article>
@@ -601,7 +766,7 @@ function initCustomerMenu() {
           <button class="menu-section-toggle" data-toggle-category="${category.id}" type="button" aria-expanded="${isOpen}">
             <div>
               <h2>${escapeHtml(category.name)}</h2>
-              <span class="menu-count">${categoryItems.length} items</span>
+              <span class="menu-count">${categoryItems.length} product${categoryItems.length === 1 ? "" : "s"}</span>
             </div>
             <span class="menu-arrow" aria-hidden="true"></span>
           </button>
@@ -642,9 +807,10 @@ function initCustomerMenu() {
     const payload = await apiFetch(urlWithStore("/api/v1/menu", { store: storeSlug || storeId }));
     categories = payload.categories;
     items = payload.items;
+    rebuildMenuEntries();
     if (!openCategories.size) {
       const firstCategory = categories.find((category) => (
-        items.some((item) => String(item.category_id) === String(category.id))
+        menuEntries.some((entry) => String(entry.category_id) === String(category.id))
       ));
       if (firstCategory) {
         openCategories.add(String(firstCategory.id));
@@ -702,8 +868,16 @@ function initCustomerMenu() {
     renderAll();
   });
 
+  menuList.addEventListener("change", (event) => {
+    const variantSelect = event.target.closest("[data-menu-variant]");
+    if (!variantSelect) return;
+    selectedVariantByEntry[variantSelect.dataset.menuVariant] = variantSelect.value;
+    renderAll();
+  });
+
   cartShortcutButton?.addEventListener("click", () => goToCustomerPage("/cart"));
   mobileCartShortcutButton?.addEventListener("click", () => goToCustomerPage("/cart"));
+  floatingCartShortcutButton?.addEventListener("click", () => goToCustomerPage("/cart"));
   checkoutShortcutButton?.addEventListener("click", () => goToCustomerPage("/checkout"));
   mobileCheckoutShortcutButton?.addEventListener("click", () => goToCustomerPage("/checkout"));
   searchInput.addEventListener("input", renderAll);
@@ -1229,6 +1403,7 @@ function initAdminDashboard() {
   const counterCustomerName = document.getElementById("counterCustomerName");
   const counterCustomerPhone = document.getElementById("counterCustomerPhone");
   const counterItemSearch = document.getElementById("counterItemSearch");
+  const counterItemSuggestions = document.getElementById("counterItemSuggestions");
   const counterItemSelect = document.getElementById("counterItemSelect");
   const counterItemQty = document.getElementById("counterItemQty");
   const counterAddItem = document.getElementById("counterAddItem");
@@ -1237,6 +1412,7 @@ function initAdminDashboard() {
   const counterOrderNotes = document.getElementById("counterOrderNotes");
   const counterOrderMessage = document.getElementById("counterOrderMessage");
   const statusValues = ["pending", "preparing", "ready", "completed", "cancelled"];
+  const recentOrderLimit = 12;
   const activeStoreId = selectedStoreId();
   const seenOrdersKey = scopedStorageKey("qrCafeSeenOrders");
   let orders = [];
@@ -1253,6 +1429,7 @@ function initAdminDashboard() {
   let hasLoadedDashboard = false;
   let knownOrderIds = new Set();
   let selectedOrder = null;
+  let counterSuggestionIndex = 0;
 
   function supportsAlertAudio() {
     return Boolean(window.AudioContext || window.webkitAudioContext);
@@ -1437,21 +1614,124 @@ function initAdminDashboard() {
     return counterItems.reduce((total, item) => total + Number(item.price || 0) * Number(item.quantity || 0), 0);
   }
 
+  function counterItemNo(item) {
+    return String(item?.id || "");
+  }
+
+  function counterItemLabel(item) {
+    return `No ${counterItemNo(item)} - ${item.name}`;
+  }
+
+  function normalizedCounterQuery(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function productNumberFromQuery(query) {
+    return normalizedCounterQuery(query)
+      .replace(/^product\s+/, "")
+      .replace(/^item\s+/, "")
+      .replace(/^no\.?\s*/, "")
+      .replace(/^#/, "")
+      .trim();
+  }
+
+  function exactCounterItemFromSearch() {
+    const query = normalizedCounterQuery(counterItemSearch?.value);
+    if (!query) return null;
+    const productNo = productNumberFromQuery(query);
+    if (/^\d+$/.test(productNo)) {
+      const exactNumberMatch = menuItems.find((item) => counterItemNo(item) === productNo);
+      if (exactNumberMatch) return exactNumberMatch;
+    }
+    return menuItems.find((item) => normalizedCounterQuery(item.name) === query) || null;
+  }
+
   function counterSearchMatches(item, query) {
-    if (!query) return true;
+    const normalizedQuery = normalizedCounterQuery(query);
+    if (!normalizedQuery) return true;
+    const productNo = productNumberFromQuery(normalizedQuery);
+    if (/^\d+$/.test(productNo)) {
+      return counterItemNo(item).startsWith(productNo);
+    }
     const haystack = [
+      counterItemNo(item),
+      `#${counterItemNo(item)}`,
+      `no ${counterItemNo(item)}`,
       item.name,
       item.category_name,
       item.description,
       ...(item.tags || []),
-      String(item.price || ""),
     ].join(" ").toLowerCase();
-    return query.split(/\s+/).every((word) => haystack.includes(word));
+    return normalizedQuery.split(/\s+/).every((word) => haystack.includes(word));
+  }
+
+  function counterSearchRank(item, query) {
+    const normalizedQuery = normalizedCounterQuery(query);
+    if (!normalizedQuery) return 0;
+    const productNo = productNumberFromQuery(normalizedQuery);
+    const itemNo = counterItemNo(item);
+    const itemName = normalizedCounterQuery(item.name);
+    if (/^\d+$/.test(productNo)) {
+      if (itemNo === productNo) return 0;
+      if (itemNo.startsWith(productNo)) return 1;
+    }
+    if (itemName === normalizedQuery) return 0;
+    if (itemName.startsWith(normalizedQuery)) return 1;
+    if (itemName.includes(normalizedQuery)) return 2;
+    return 3;
   }
 
   function filteredCounterMenuItems() {
-    const query = (counterItemSearch?.value || "").trim().toLowerCase();
-    return menuItems.filter((item) => counterSearchMatches(item, query)).slice(0, 60);
+    const query = counterItemSearch?.value || "";
+    return menuItems
+      .filter((item) => counterSearchMatches(item, query))
+      .sort((first, second) => counterSearchRank(first, query) - counterSearchRank(second, query))
+      .slice(0, 60);
+  }
+
+  function closeCounterSuggestions() {
+    if (!counterItemSuggestions) return;
+    counterItemSuggestions.hidden = true;
+    counterItemSearch?.setAttribute("aria-expanded", "false");
+    counterItemSearch?.removeAttribute("aria-activedescendant");
+  }
+
+  function renderCounterSuggestions(matchingItems) {
+    if (!counterItemSuggestions || !counterItemSearch) return;
+    const isSearchActive = document.activeElement === counterItemSearch;
+    if (!isSearchActive) {
+      closeCounterSuggestions();
+      return;
+    }
+    const visibleItems = matchingItems.slice(0, 8);
+    counterSuggestionIndex = Math.max(0, Math.min(counterSuggestionIndex, Math.max(visibleItems.length - 1, 0)));
+    if (!visibleItems.length) {
+      counterItemSuggestions.innerHTML = `<p class="counter-suggestion-empty">No matching product</p>`;
+      counterItemSuggestions.hidden = false;
+      counterItemSearch.setAttribute("aria-expanded", "true");
+      counterItemSearch.removeAttribute("aria-activedescendant");
+      return;
+    }
+    counterItemSuggestions.innerHTML = visibleItems.map((item, index) => {
+      const suggestionId = `counterSuggestion${item.id}`;
+      return `
+        <button
+          id="${suggestionId}"
+          class="counter-suggestion ${index === counterSuggestionIndex ? "is-active" : ""}"
+          data-counter-suggestion="${item.id}"
+          type="button"
+          role="option"
+          aria-selected="${index === counterSuggestionIndex ? "true" : "false"}"
+        >
+          <span class="counter-suggestion-no">No ${escapeHtml(counterItemNo(item))}</span>
+          <span class="counter-suggestion-name">${escapeHtml(item.name)}</span>
+          <span class="counter-suggestion-price">${money(item.price)}</span>
+        </button>
+      `;
+    }).join("");
+    counterItemSuggestions.hidden = false;
+    counterItemSearch.setAttribute("aria-expanded", "true");
+    counterItemSearch.setAttribute("aria-activedescendant", `counterSuggestion${visibleItems[counterSuggestionIndex]?.id || ""}`);
   }
 
   function renderCounterOrder() {
@@ -1459,6 +1739,7 @@ function initAdminDashboard() {
     const selectedTable = counterTableSelect?.value || "";
     const selectedItem = counterItemSelect?.value || "";
     const matchingItems = filteredCounterMenuItems();
+    const exactSearchItem = exactCounterItemFromSearch();
     if (counterTableSelect) {
       counterTableSelect.innerHTML = `
         <option value="">Select table</option>
@@ -1469,11 +1750,11 @@ function initAdminDashboard() {
     if (counterItemSelect) {
       counterItemSelect.innerHTML = `
         <option value="">${matchingItems.length ? "Select menu item" : "No matching product"}</option>
-        ${matchingItems.map((item) => `<option value="${item.id}">${escapeHtml(item.name)} - ${money(item.price)}</option>`).join("")}
+        ${matchingItems.map((item) => `<option value="${item.id}">${escapeHtml(counterItemLabel(item))} - ${money(item.price)}</option>`).join("")}
       `;
       counterItemSelect.value = matchingItems.some((item) => String(item.id) === String(selectedItem))
         ? selectedItem
-        : (matchingItems[0]?.id || "");
+        : (exactSearchItem?.id || matchingItems[0]?.id || "");
     }
     if (counterOrderItems) {
       counterOrderItems.innerHTML = counterItems.map((item) => `
@@ -1487,10 +1768,19 @@ function initAdminDashboard() {
     if (counterOrderTotal) {
       counterOrderTotal.textContent = money(counterItemTotal());
     }
+    renderCounterSuggestions(matchingItems);
   }
 
-  function addCounterItem() {
-    const item = menuItems.find((candidate) => String(candidate.id) === String(counterItemSelect?.value));
+  function selectedCounterItem() {
+    const exactItem = exactCounterItemFromSearch();
+    if (exactItem) return exactItem;
+    return menuItems.find((candidate) => String(candidate.id) === String(counterItemSelect?.value))
+      || filteredCounterMenuItems()[0]
+      || null;
+  }
+
+  function addCounterItem(itemToAdd = null) {
+    const item = itemToAdd || selectedCounterItem();
     const quantity = Math.max(1, Number(counterItemQty?.value || 1));
     if (!item) {
       if (counterOrderMessage) counterOrderMessage.textContent = "Select a menu item first.";
@@ -1787,7 +2077,7 @@ function initAdminDashboard() {
   function render() {
     const visibleOrders = filteredOrders();
     if (recentBody) {
-      recentBody.innerHTML = visibleOrders.slice(0, 8).map((order) => {
+      recentBody.innerHTML = visibleOrders.slice(0, recentOrderLimit).map((order) => {
         const itemsCount = (order.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
         return `
           <tr class="${isUnseen(order) ? "is-unseen" : ""}">
@@ -1809,7 +2099,7 @@ function initAdminDashboard() {
       }).join("") || `<tr><td colspan="7" class="empty-cell">No orders found.</td></tr>`;
     }
 
-    board.innerHTML = visibleOrders.slice(0, 8).map((order) => {
+    board.innerHTML = visibleOrders.slice(0, recentOrderLimit).map((order) => {
       const items = order.items.map((item) => `<li>${escapeHtml(item.item_name)} x ${item.quantity}</li>`).join("");
       return `
         <article class="order-card ${isUnseen(order) ? "is-unseen" : ""}" data-order-id="${order.id}">
@@ -1901,12 +2191,45 @@ function initAdminDashboard() {
     await updateOrderStatus(orderId, select.value);
   });
 
-  counterAddItem?.addEventListener("click", addCounterItem);
-  counterItemSearch?.addEventListener("input", renderCounterOrder);
+  counterAddItem?.addEventListener("click", () => addCounterItem());
+  counterItemSearch?.addEventListener("focus", () => {
+    counterSuggestionIndex = 0;
+    renderCounterOrder();
+  });
+  counterItemSearch?.addEventListener("blur", () => {
+    window.setTimeout(closeCounterSuggestions, 120);
+  });
+  counterItemSearch?.addEventListener("input", () => {
+    counterSuggestionIndex = 0;
+    renderCounterOrder();
+  });
   counterItemSearch?.addEventListener("keydown", (event) => {
+    const suggestionItems = filteredCounterMenuItems().slice(0, 8);
+    if ((event.key === "ArrowDown" || event.key === "ArrowUp") && suggestionItems.length) {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      counterSuggestionIndex = (counterSuggestionIndex + direction + suggestionItems.length) % suggestionItems.length;
+      if (counterItemSelect) counterItemSelect.value = suggestionItems[counterSuggestionIndex].id;
+      renderCounterSuggestions(suggestionItems);
+      return;
+    }
+    if (event.key === "Escape") {
+      closeCounterSuggestions();
+      return;
+    }
     if (event.key !== "Enter") return;
     event.preventDefault();
     addCounterItem();
+  });
+  counterItemSuggestions?.addEventListener("mousedown", (event) => {
+    const button = event.target.closest("[data-counter-suggestion]");
+    if (!button) return;
+    event.preventDefault();
+    const item = menuItems.find((candidate) => String(candidate.id) === String(button.dataset.counterSuggestion));
+    if (!item) return;
+    if (counterItemSelect) counterItemSelect.value = item.id;
+    addCounterItem(item);
+    closeCounterSuggestions();
   });
   counterItemQty?.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") return;
