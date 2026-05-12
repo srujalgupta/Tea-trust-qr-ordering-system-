@@ -342,7 +342,7 @@ body[data-page="customer-menu"] .topbar {
 
 body[data-page="customer-menu"] .shell {
   animation: page-fade-in 0.32s var(--ease-out) both;
-  padding-bottom: 128px;
+  padding-bottom: 104px;
 }
 
 .flash-stack {
@@ -738,11 +738,8 @@ p {
 }
 
 .menu-tools {
-  position: sticky;
-  top: 86px;
-  z-index: 6;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   align-items: start;
   margin: 0 0 16px;
@@ -765,17 +762,6 @@ p {
   border-radius: 16px;
   border: 1px solid rgba(139, 69, 19, 0.12);
   background: #fff;
-}
-
-.customer-actions-panel,
-.mobile-checkout-bar {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.customer-actions-panel {
-  animation: panel-rise 0.44s var(--ease-out) 0.08s both;
 }
 
 .category-tabs {
@@ -892,21 +878,24 @@ p {
 .floating-cart-button {
   position: fixed;
   right: 24px;
-  bottom: 108px;
+  bottom: 24px;
   z-index: 32;
-  min-height: 54px;
+  max-width: calc(100vw - 48px);
+  min-height: 58px;
   border: 1px solid rgba(31, 122, 92, 0.2);
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  justify-content: center;
+  gap: 10px;
   background: var(--accent);
   color: #fff;
   cursor: pointer;
   box-shadow: 0 18px 38px rgba(31, 122, 92, 0.28);
-  padding: 10px 14px;
+  padding: 10px 18px;
   font-weight: 900;
   text-decoration: none;
+  white-space: nowrap;
   transition:
     background-color 0.18s ease,
     box-shadow 0.18s ease,
@@ -924,28 +913,19 @@ p {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.18);
   color: #fff;
-  padding: 4px 8px;
+  padding: 5px 9px;
+}
+
+.floating-cart-button strong {
+  min-width: 34px;
+  text-align: center;
 }
 
 .floating-cart-button small {
+  max-width: 104px;
+  overflow: hidden;
   font-size: 0.78rem;
-}
-
-.mobile-checkout-bar {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 30;
-  width: min(520px, calc(100vw - 48px));
-  display: grid;
-  align-items: center;
-  border: 1px solid rgba(139, 69, 19, 0.12);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 18px 40px rgba(29, 35, 40, 0.14);
-  padding: 10px;
-  backdrop-filter: blur(16px);
-  animation: panel-rise 0.38s var(--ease-out) both;
+  text-overflow: ellipsis;
 }
 
 .shop-layout {
@@ -977,7 +957,7 @@ p {
   border-radius: 8px;
   background: #fff;
   overflow: hidden;
-  scroll-margin-top: 236px;
+  scroll-margin-top: 24px;
   animation: panel-rise 0.42s var(--ease-out) both;
   transition:
     border-color 0.18s ease,
@@ -3645,7 +3625,7 @@ body.qr-print-page {
   }
 
   body[data-page="customer-menu"] .shell {
-    padding-bottom: 110px;
+    padding-bottom: 92px;
   }
 
   .shell {
@@ -3688,34 +3668,20 @@ body.qr-print-page {
     max-width: none;
   }
 
-  .customer-actions-panel {
-    display: none;
-  }
-
   .menu-hero-actions .button {
     flex: 1 1 140px;
   }
 
-  .mobile-checkout-bar {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    width: auto;
-  }
-
   .floating-cart-button {
     right: 12px;
-    bottom: 92px;
+    bottom: 14px;
+    max-width: calc(100vw - 24px);
     min-height: 50px;
     padding: 9px 12px;
   }
 
   .floating-cart-button small {
-    display: none;
-  }
-
-  .mobile-checkout-bar .customer-action-button {
-    min-height: 48px;
+    max-width: 88px;
   }
 
   .category-tabs {

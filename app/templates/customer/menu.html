@@ -27,7 +27,6 @@
       <p>{{ cafe.tagline }}. Choose your favorites and track your token live. Call {{ cafe.phone }}.</p>
       <div class="menu-hero-actions">
         <a class="button primary" href="#menuList">Browse menu</a>
-        <a class="button hero-ghost-button" href="{{ url_for('customer.cart', table=table.id) if table else url_for('customer.cart') }}">View cart</a>
         <a class="button hero-ghost-button current-order-link" id="menuCurrentOrderLink" href="#" hidden>Track current order</a>
       </div>
     </div>
@@ -61,21 +60,6 @@
       <span>Search</span>
       <input id="menuSearch" type="search" placeholder="Chai, sandwich, fries..." autocomplete="off">
     </label>
-    <div class="customer-actions-panel" aria-label="Cart and checkout">
-      <a id="cartShortcut" class="customer-action-button cart-action" href="{{ url_for('customer.cart', store=selected_store.slug, table=table.id) if table else (url_for('customer.cart', store=selected_store.slug) if selected_store else url_for('customer.cart')) }}" aria-label="View cart">
-        <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M6.5 6.5h15l-1.7 8.3a2 2 0 0 1-2 1.6H9.2a2 2 0 0 1-2-1.7L5.7 4H2.5" />
-          <circle cx="9.5" cy="20" r="1.5" />
-          <circle cx="18" cy="20" r="1.5" />
-        </svg>
-        <span>View cart</span>
-        <strong id="cartItemCount">0</strong>
-      </a>
-      <a id="checkoutShortcut" class="customer-action-button primary" href="{{ url_for('customer.checkout', store=selected_store.slug, table=table.id) if table else (url_for('customer.checkout', store=selected_store.slug) if selected_store else url_for('customer.checkout')) }}">
-        <span>Checkout now</span>
-        <strong id="checkoutAmount">INR 0.00</strong>
-      </a>
-    </div>
   </section>
 
   <nav id="categoryTabs" class="category-tabs" aria-label="Menu categories"></nav>
@@ -83,22 +67,6 @@
   <section class="shop-layout">
     <div id="menuList" class="menu-section-list" aria-live="polite"></div>
   </section>
-
-  <div class="mobile-checkout-bar" aria-label="Cart and checkout">
-    <a id="mobileCartShortcut" class="customer-action-button cart-action" href="{{ url_for('customer.cart', store=selected_store.slug, table=table.id) if table else (url_for('customer.cart', store=selected_store.slug) if selected_store else url_for('customer.cart')) }}" aria-label="View cart">
-      <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M6.5 6.5h15l-1.7 8.3a2 2 0 0 1-2 1.6H9.2a2 2 0 0 1-2-1.7L5.7 4H2.5" />
-        <circle cx="9.5" cy="20" r="1.5" />
-        <circle cx="18" cy="20" r="1.5" />
-      </svg>
-      <span>View cart</span>
-      <strong id="mobileCartItemCount">0</strong>
-    </a>
-    <a id="mobileCheckoutShortcut" class="customer-action-button primary" href="{{ url_for('customer.checkout', store=selected_store.slug, table=table.id) if table else (url_for('customer.checkout', store=selected_store.slug) if selected_store else url_for('customer.checkout')) }}">
-      <span>Checkout now</span>
-      <strong id="mobileCheckoutAmount">INR 0.00</strong>
-    </a>
-  </div>
 
   <a id="floatingCartShortcut" class="floating-cart-button" href="{{ url_for('customer.cart', store=selected_store.slug, table=table.id) if table else (url_for('customer.cart', store=selected_store.slug) if selected_store else url_for('customer.cart')) }}" aria-label="Open cart">
     <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">

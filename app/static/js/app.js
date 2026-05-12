@@ -462,19 +462,11 @@ function initCustomerMenu() {
   const menuList = document.getElementById("menuList");
   const searchInput = document.getElementById("menuSearch");
   const categoryTabs = document.getElementById("categoryTabs");
-  const cartShortcutButton = document.getElementById("cartShortcut");
-  const checkoutShortcutButton = document.getElementById("checkoutShortcut");
-  const mobileCartShortcutButton = document.getElementById("mobileCartShortcut");
-  const mobileCheckoutShortcutButton = document.getElementById("mobileCheckoutShortcut");
   const floatingCartShortcutButton = document.getElementById("floatingCartShortcut");
   const cartCountEls = [
-    document.getElementById("cartItemCount"),
-    document.getElementById("mobileCartItemCount"),
     document.getElementById("floatingCartItemCount"),
   ].filter(Boolean);
   const checkoutAmountEls = [
-    document.getElementById("checkoutAmount"),
-    document.getElementById("mobileCheckoutAmount"),
     document.getElementById("floatingCartAmount"),
   ].filter(Boolean);
   const menuItemTotalEl = document.getElementById("menuItemTotal");
@@ -787,13 +779,6 @@ function initCustomerMenu() {
     checkoutAmountEls.forEach((element) => {
       element.textContent = formattedTotal;
     });
-    [
-      checkoutShortcutButton,
-      mobileCheckoutShortcutButton,
-    ].filter(Boolean).forEach((button) => {
-      button.disabled = !count;
-      button.classList.toggle("is-empty", !count);
-    });
   }
 
   function renderAll() {
@@ -875,11 +860,7 @@ function initCustomerMenu() {
     renderAll();
   });
 
-  cartShortcutButton?.addEventListener("click", () => goToCustomerPage("/cart"));
-  mobileCartShortcutButton?.addEventListener("click", () => goToCustomerPage("/cart"));
   floatingCartShortcutButton?.addEventListener("click", () => goToCustomerPage("/cart"));
-  checkoutShortcutButton?.addEventListener("click", () => goToCustomerPage("/checkout"));
-  mobileCheckoutShortcutButton?.addEventListener("click", () => goToCustomerPage("/checkout"));
   searchInput.addEventListener("input", renderAll);
   loadMenu().catch((error) => {
     menuList.innerHTML = `<p class="helper-text">${escapeHtml(error.message)}</p>`;
