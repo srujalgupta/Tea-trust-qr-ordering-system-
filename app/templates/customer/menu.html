@@ -62,7 +62,7 @@
       <input id="menuSearch" type="search" placeholder="Chai, sandwich, fries..." autocomplete="off">
     </label>
     <div class="customer-actions-panel" aria-label="Cart and checkout">
-      <button id="cartShortcut" class="customer-action-button cart-action" type="button" aria-label="View cart">
+      <a id="cartShortcut" class="customer-action-button cart-action" href="{{ url_for('customer.cart', store=selected_store.slug, table=table.id) if table else (url_for('customer.cart', store=selected_store.slug) if selected_store else url_for('customer.cart')) }}" aria-label="View cart">
         <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M6.5 6.5h15l-1.7 8.3a2 2 0 0 1-2 1.6H9.2a2 2 0 0 1-2-1.7L5.7 4H2.5" />
           <circle cx="9.5" cy="20" r="1.5" />
@@ -70,11 +70,11 @@
         </svg>
         <span>View cart</span>
         <strong id="cartItemCount">0</strong>
-      </button>
-      <button id="checkoutShortcut" class="customer-action-button primary" type="button">
+      </a>
+      <a id="checkoutShortcut" class="customer-action-button primary" href="{{ url_for('customer.checkout', store=selected_store.slug, table=table.id) if table else (url_for('customer.checkout', store=selected_store.slug) if selected_store else url_for('customer.checkout')) }}">
         <span>Checkout now</span>
         <strong id="checkoutAmount">INR 0.00</strong>
-      </button>
+      </a>
     </div>
   </section>
 
@@ -85,7 +85,7 @@
   </section>
 
   <div class="mobile-checkout-bar" aria-label="Cart and checkout">
-    <button id="mobileCartShortcut" class="customer-action-button cart-action" type="button" aria-label="View cart">
+    <a id="mobileCartShortcut" class="customer-action-button cart-action" href="{{ url_for('customer.cart', store=selected_store.slug, table=table.id) if table else (url_for('customer.cart', store=selected_store.slug) if selected_store else url_for('customer.cart')) }}" aria-label="View cart">
       <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M6.5 6.5h15l-1.7 8.3a2 2 0 0 1-2 1.6H9.2a2 2 0 0 1-2-1.7L5.7 4H2.5" />
         <circle cx="9.5" cy="20" r="1.5" />
@@ -93,14 +93,14 @@
       </svg>
       <span>View cart</span>
       <strong id="mobileCartItemCount">0</strong>
-    </button>
-    <button id="mobileCheckoutShortcut" class="customer-action-button primary" type="button">
+    </a>
+    <a id="mobileCheckoutShortcut" class="customer-action-button primary" href="{{ url_for('customer.checkout', store=selected_store.slug, table=table.id) if table else (url_for('customer.checkout', store=selected_store.slug) if selected_store else url_for('customer.checkout')) }}">
       <span>Checkout now</span>
       <strong id="mobileCheckoutAmount">INR 0.00</strong>
-    </button>
+    </a>
   </div>
 
-  <button id="floatingCartShortcut" class="floating-cart-button" type="button" aria-label="Open cart">
+  <a id="floatingCartShortcut" class="floating-cart-button" href="{{ url_for('customer.cart', store=selected_store.slug, table=table.id) if table else (url_for('customer.cart', store=selected_store.slug) if selected_store else url_for('customer.cart')) }}" aria-label="Open cart">
     <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M6.5 6.5h15l-1.7 8.3a2 2 0 0 1-2 1.6H9.2a2 2 0 0 1-2-1.7L5.7 4H2.5" />
       <circle cx="9.5" cy="20" r="1.5" />
@@ -109,5 +109,5 @@
     <span>Cart</span>
     <strong id="floatingCartItemCount">0</strong>
     <small id="floatingCartAmount">INR 0.00</small>
-  </button>
+  </a>
 {% endblock %}
