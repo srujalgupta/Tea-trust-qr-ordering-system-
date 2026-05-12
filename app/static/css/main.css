@@ -1086,14 +1086,15 @@ p {
 }
 
 .item-title {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  display: grid;
+  gap: 6px;
   margin-bottom: 0;
 }
 
 .item-title h3 {
+  min-width: 0;
   margin-bottom: 0;
+  line-height: 1.18;
 }
 
 .item-body p {
@@ -1103,7 +1104,8 @@ p {
 .price {
   color: var(--accent-strong);
   font-weight: 900;
-  white-space: nowrap;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .item-meta-row,
