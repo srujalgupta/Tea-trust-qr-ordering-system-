@@ -3959,3 +3959,133 @@ body.qr-print-page {
     grid-template-columns: 1fr;
   }
 }
+
+/* Always-open Table Selection Grid & Badge */
+.counter-order-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.counter-table-selection-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.counter-table-selection-block .block-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #4b5e76;
+}
+
+.counter-table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.counter-table-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #d7e2ec;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #1e293b;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.counter-table-btn:hover {
+  border-color: #155dfc;
+  background: #eef6ff;
+  color: #155dfc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(21, 93, 252, 0.08);
+}
+
+.counter-table-btn:active {
+  transform: translateY(0);
+}
+
+.counter-selected-table-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #eef6ff;
+  border: 1px solid #cbdffc;
+  border-radius: 8px;
+  padding: 8px 14px;
+  width: 100%;
+  max-width: 280px;
+  animation: tableBadgeFadeIn 0.25s ease-out;
+}
+
+.counter-selected-table-badge .badge-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.counter-selected-table-badge .badge-icon {
+  font-size: 1.05rem;
+}
+
+.counter-selected-table-badge .badge-label {
+  font-weight: 700;
+  color: #155dfc;
+  font-size: 0.95rem;
+}
+
+.counter-selected-table-badge .clear-table-btn {
+  background: transparent;
+  border: 0;
+  color: #155dfc;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.counter-selected-table-badge .clear-table-btn:hover {
+  background: rgba(21, 93, 252, 0.08);
+}
+
+.counter-customer-info {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@keyframes tableBadgeFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .counter-customer-info {
+    grid-template-columns: 1fr;
+  }
+}

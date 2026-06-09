@@ -1783,6 +1783,28 @@ function initAdminDashboard() {
       `;
       counterTableSelect.value = selectedTable;
     }
+
+    const tableGrid = document.getElementById("counterTableGrid");
+    const tableBadge = document.getElementById("counterSelectedTableBadge");
+    const tableLabel = document.getElementById("counterSelectedTableLabel");
+
+    if (tableGrid && tableBadge && tableLabel) {
+      if (selectedTable) {
+        tableGrid.style.display = "none";
+        tableBadge.style.display = "flex";
+        const matched = tables.find((t) => String(t.id) === String(selectedTable));
+        tableLabel.textContent = matched ? matched.label : `Table ${selectedTable}`;
+      } else {
+        tableGrid.style.display = "grid";
+        tableBadge.style.display = "none";
+        tableGrid.innerHTML = tables.map((table) => `
+          <button class="counter-table-btn" type="button" data-table-id="${table.id}">
+            🪑 ${escapeHtml(table.label)}
+          </button>
+        `).join("") || `<p class="helper-text">No active tables.</p>`;
+      }
+    }
+
     if (counterItemSelect) {
       counterItemSelect.innerHTML = `
         <option value="">${matchingItems.length ? "Select menu item" : "No matching product"}</option>
@@ -2238,9 +2260,27 @@ function initAdminDashboard() {
     await updateOrderStatus(orderId, select.value);
   });
 
+  const counterTableGrid = document.getElementById("counterTableGrid");
+  const counterClearTableBtn = document.getElementById("counterClearTableBtn");
 
+  counterTableGrid?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-table-id]");
+    if (!btn) return;
+    const tableId = btn.dataset.tableId;
+    if (counterTableSelect) {
+      counterTableSelect.value = tableId;
+      counterTableSelect.dispatchEvent(new Event("change"));
+    }
+    renderCounterOrder();
+  });
 
-
+  counterClearTableBtn?.addEventListener("click", () => {
+    if (counterTableSelect) {
+      counterTableSelect.value = "";
+      counterTableSelect.dispatchEvent(new Event("change"));
+    }
+    renderCounterOrder();
+  });
 
   counterAddItem?.addEventListener("click", () => addCounterItem());
   counterItemSearch?.addEventListener("focus", () => {

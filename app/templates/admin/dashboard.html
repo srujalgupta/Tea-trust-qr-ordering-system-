@@ -32,21 +32,38 @@
       </header>
 
       <form id="counterOrderForm" class="counter-order-form">
-        <div class="counter-order-grid">
-          <label>
-            Table
-            <select id="counterTableSelect" required>
+        <div class="counter-order-layout">
+          <!-- Always-open Table selection block, closes when selected -->
+          <div class="counter-table-selection-block">
+            <span class="block-label">Table</span>
+            <select id="counterTableSelect" required style="display: none;">
               <option value="">Select table</option>
             </select>
-          </label>
-          <label>
-            Customer
-            <input id="counterCustomerName" autocomplete="name" placeholder="Guest">
-          </label>
-          <label>
-            Phone
-            <input id="counterCustomerPhone" autocomplete="tel" inputmode="tel" placeholder="Optional">
-          </label>
+            <div id="counterTableGrid" class="counter-table-grid">
+              <!-- Dynamically populated buttons -->
+            </div>
+            <div id="counterSelectedTableBadge" class="counter-selected-table-badge" style="display: none;">
+              <div class="badge-content">
+                <span class="badge-icon">🪑</span>
+                <span id="counterSelectedTableLabel" class="badge-label"></span>
+              </div>
+              <button id="counterClearTableBtn" class="clear-table-btn" type="button" aria-label="Change table selection">
+                ▼
+              </button>
+            </div>
+          </div>
+
+          <!-- Customer and Phone details -->
+          <div class="counter-customer-info">
+            <label>
+              Customer
+              <input id="counterCustomerName" autocomplete="name" placeholder="Guest">
+            </label>
+            <label>
+              Phone
+              <input id="counterCustomerPhone" autocomplete="tel" inputmode="tel" placeholder="Optional">
+            </label>
+          </div>
         </div>
 
         <!-- Collapsible details section -->
