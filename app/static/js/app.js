@@ -1459,21 +1459,15 @@ function initAdminDashboard() {
   let selectedOrder = null;
   let counterSuggestionIndex = 0;
   let isCounterDetailsExpanded = false;
-  let hasManuallyToggledCounterDetails = false;
-  const toggleBtn = document.getElementById("toggleCounterOrderDetails");
   const detailsSection = document.getElementById("counterOrderDetailsSection");
 
   function setDetailsExpanded(expanded) {
     isCounterDetailsExpanded = expanded;
-    if (!detailsSection || !toggleBtn) return;
+    if (!detailsSection) return;
     if (expanded) {
       detailsSection.classList.remove("collapsed");
-      toggleBtn.setAttribute("aria-expanded", "true");
-      toggleBtn.textContent = "Collapse Details";
     } else {
       detailsSection.classList.add("collapsed");
-      toggleBtn.setAttribute("aria-expanded", "false");
-      toggleBtn.textContent = "Expand Details";
     }
   }
 
@@ -1816,12 +1810,7 @@ function initAdminDashboard() {
     }
     renderCounterSuggestions(matchingItems);
 
-    if (selectedTable !== "" && !hasManuallyToggledCounterDetails) {
-      isCounterDetailsExpanded = true;
-    } else if (selectedTable === "") {
-      isCounterDetailsExpanded = false;
-      hasManuallyToggledCounterDetails = false;
-    }
+    isCounterDetailsExpanded = selectedTable !== "";
     setDetailsExpanded(isCounterDetailsExpanded);
   }
 
@@ -2256,13 +2245,7 @@ function initAdminDashboard() {
   });
 
   counterTableSelect?.addEventListener("change", (e) => {
-    hasManuallyToggledCounterDetails = false;
     setDetailsExpanded(e.target.value !== "");
-  });
-
-  toggleBtn?.addEventListener("click", () => {
-    hasManuallyToggledCounterDetails = true;
-    setDetailsExpanded(!isCounterDetailsExpanded);
   });
 
   counterAddItem?.addEventListener("click", () => addCounterItem());
