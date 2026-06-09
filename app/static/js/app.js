@@ -1458,18 +1458,7 @@ function initAdminDashboard() {
   let knownOrderIds = new Set();
   let selectedOrder = null;
   let counterSuggestionIndex = 0;
-  let isCounterDetailsExpanded = false;
-  const detailsSection = document.getElementById("counterOrderDetailsSection");
 
-  function setDetailsExpanded(expanded) {
-    isCounterDetailsExpanded = expanded;
-    if (!detailsSection) return;
-    if (expanded) {
-      detailsSection.classList.remove("collapsed");
-    } else {
-      detailsSection.classList.add("collapsed");
-    }
-  }
 
   function supportsAlertAudio() {
     return Boolean(window.AudioContext || window.webkitAudioContext);
@@ -1810,8 +1799,6 @@ function initAdminDashboard() {
     }
     renderCounterSuggestions(matchingItems);
 
-    isCounterDetailsExpanded = selectedTable !== "";
-    setDetailsExpanded(isCounterDetailsExpanded);
   }
 
   function selectedCounterItem() {
@@ -2244,9 +2231,7 @@ function initAdminDashboard() {
     await updateOrderStatus(orderId, select.value);
   });
 
-  counterTableSelect?.addEventListener("change", (e) => {
-    setDetailsExpanded(e.target.value !== "");
-  });
+
 
   counterAddItem?.addEventListener("click", () => addCounterItem());
   counterItemSearch?.addEventListener("focus", () => {

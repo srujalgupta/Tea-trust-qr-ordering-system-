@@ -49,29 +49,26 @@
           </label>
         </div>
 
-        <!-- Collapsible details section -->
-        <div id="counterOrderDetailsSection" class="counter-order-details-section collapsed">
-          <div class="counter-item-picker">
-            <div class="counter-search-field">
-              <input id="counterItemSearch" type="search" placeholder="Product name / no." autocomplete="off" role="combobox" aria-expanded="false" aria-controls="counterItemSuggestions" aria-autocomplete="list" aria-label="Search menu items">
-              <div id="counterItemSuggestions" class="counter-item-suggestions" role="listbox" hidden></div>
-            </div>
-            <select id="counterItemSelect" aria-label="Menu item">
-              <option value="">Loading menu...</option>
-            </select>
-            <input id="counterItemQty" type="number" min="1" value="1" aria-label="Quantity">
-            <button id="counterAddItem" class="button" type="button">Add item</button>
+        <div class="counter-item-picker">
+          <div class="counter-search-field">
+            <input id="counterItemSearch" type="search" placeholder="Product name / no." autocomplete="off" role="combobox" aria-expanded="false" aria-controls="counterItemSuggestions" aria-autocomplete="list" aria-label="Search menu items">
+            <div id="counterItemSuggestions" class="counter-item-suggestions" role="listbox" hidden></div>
           </div>
+          <select id="counterItemSelect" aria-label="Menu item">
+            <option value="">Loading menu...</option>
+          </select>
+          <input id="counterItemQty" type="number" min="1" value="1" aria-label="Quantity">
+          <button id="counterAddItem" class="button" type="button">Add item</button>
+        </div>
 
-          <div id="counterOrderItems" class="counter-order-items"></div>
-          <label>
-            Notes
-            <textarea id="counterOrderNotes" placeholder="Special instructions"></textarea>
-          </label>
-          <div class="counter-order-footer">
-            <strong id="counterOrderTotal">INR 0.00</strong>
-            <button class="button primary" type="submit">Create order</button>
-          </div>
+        <div id="counterOrderItems" class="counter-order-items"></div>
+        <label>
+          Notes
+          <textarea id="counterOrderNotes" placeholder="Special instructions"></textarea>
+        </label>
+        <div class="counter-order-footer">
+          <strong id="counterOrderTotal">INR 0.00</strong>
+          <button class="button primary" type="submit">Create order</button>
         </div>
         <p id="counterOrderMessage" class="helper-text" role="status"></p>
       </form>
