@@ -1458,7 +1458,18 @@ function initAdminDashboard() {
   let knownOrderIds = new Set();
   let selectedOrder = null;
   let counterSuggestionIndex = 0;
+  let isCounterDetailsExpanded = true;
+  const detailsSection = document.getElementById("counterOrderDetailsSection");
 
+  function setDetailsExpanded(expanded) {
+    isCounterDetailsExpanded = expanded;
+    if (!detailsSection) return;
+    if (expanded) {
+      detailsSection.classList.remove("collapsed");
+    } else {
+      detailsSection.classList.add("collapsed");
+    }
+  }
 
   function supportsAlertAudio() {
     return Boolean(window.AudioContext || window.webkitAudioContext);
@@ -1798,7 +1809,7 @@ function initAdminDashboard() {
       counterOrderTotal.textContent = money(counterItemTotal());
     }
     renderCounterSuggestions(matchingItems);
-
+    setDetailsExpanded(selectedTable === "");
   }
 
   function selectedCounterItem() {
@@ -2229,6 +2240,10 @@ function initAdminDashboard() {
     const select = scope.querySelector(`[data-status-for="${orderId}"]`);
     if (!select) return;
     await updateOrderStatus(orderId, select.value);
+  });
+
+  counterTableSelect?.addEventListener("change", (e) => {
+    setDetailsExpanded(e.target.value === "");
   });
 
 
