@@ -1462,13 +1462,9 @@ function initAdminDashboard() {
   const detailsSection = document.getElementById("counterOrderDetailsSection");
 
   function setDetailsExpanded(expanded) {
-    isCounterDetailsExpanded = expanded;
+    isCounterDetailsExpanded = true;
     if (!detailsSection) return;
-    if (expanded) {
-      detailsSection.classList.remove("collapsed");
-    } else {
-      detailsSection.classList.add("collapsed");
-    }
+    detailsSection.classList.remove("collapsed");
   }
 
   function supportsAlertAudio() {
@@ -1809,7 +1805,7 @@ function initAdminDashboard() {
       counterOrderTotal.textContent = money(counterItemTotal());
     }
     renderCounterSuggestions(matchingItems);
-    setDetailsExpanded(selectedTable === "");
+    setDetailsExpanded(true);
   }
 
   function selectedCounterItem() {
@@ -2242,9 +2238,7 @@ function initAdminDashboard() {
     await updateOrderStatus(orderId, select.value);
   });
 
-  counterTableSelect?.addEventListener("change", (e) => {
-    setDetailsExpanded(e.target.value === "");
-  });
+
 
 
 
