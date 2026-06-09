@@ -213,6 +213,9 @@ def admin_analytics():
         reverse=True,
     )[:10]
 
+    pending_orders_count = len(list_orders(status="pending", store=store))
+    active_tables_count = len(list_tables(include_inactive=False, store=store))
+
     return jsonify({
         "days": days,
         "order_count": len(orders),
@@ -224,6 +227,8 @@ def admin_analytics():
         "hourly": [{"hour": hour, "orders": count} for hour, count in hourly.items()],
         "status_counts": dict(status_counts),
         "top_items": top_items_payload,
+        "pending_orders_count": pending_orders_count,
+        "active_tables_count": active_tables_count,
     })
 
 

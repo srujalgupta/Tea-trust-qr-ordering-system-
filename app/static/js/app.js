@@ -1458,6 +1458,24 @@ function initAdminDashboard() {
   let knownOrderIds = new Set();
   let selectedOrder = null;
   let counterSuggestionIndex = 0;
+  let isCounterDetailsExpanded = false;
+  let hasManuallyToggledCounterDetails = false;
+  const toggleBtn = document.getElementById("toggleCounterOrderDetails");
+  const detailsSection = document.getElementById("counterOrderDetailsSection");
+
+  function setDetailsExpanded(expanded) {
+    isCounterDetailsExpanded = expanded;
+    if (!detailsSection || !toggleBtn) return;
+    if (expanded) {
+      detailsSection.classList.remove("collapsed");
+      toggleBtn.setAttribute("aria-expanded", "true");
+      toggleBtn.textContent = "Collapse Details";
+    } else {
+      detailsSection.classList.add("collapsed");
+      toggleBtn.setAttribute("aria-expanded", "false");
+      toggleBtn.textContent = "Expand Details";
+    }
+  }
 
   function supportsAlertAudio() {
     return Boolean(window.AudioContext || window.webkitAudioContext);
@@ -1797,6 +1815,14 @@ function initAdminDashboard() {
       counterOrderTotal.textContent = money(counterItemTotal());
     }
     renderCounterSuggestions(matchingItems);
+
+    if (selectedTable !== "" && !hasManuallyToggledCounterDetails) {
+      isCounterDetailsExpanded = true;
+    } else if (selectedTable === "") {
+      isCounterDetailsExpanded = false;
+      hasManuallyToggledCounterDetails = false;
+    }
+    setDetailsExpanded(isCounterDetailsExpanded);
   }
 
   function selectedCounterItem() {
@@ -1990,10 +2016,18 @@ function initAdminDashboard() {
     const lastToken = tokenOrders.reduce((max, order) => Math.max(max, Number(order.token_number || 0)), 0);
     const tokenPercent = totalTokens ? Math.round((completedTokens / totalTokens) * 100) : 0;
 
-    document.getElementById("totalOrdersMetric").textContent = orders.length;
-    document.getElementById("totalRevenueMetric").textContent = dashboardMoney(revenue);
-    document.getElementById("pendingOrdersMetric").textContent = pending;
-    document.getElementById("activeTablesMetric").textContent = `${tables.length} active`;
+    const totalOrdersEl = document.getElementById("totalOrdersMetric");
+    if (totalOrdersEl) totalOrdersEl.textContent = orders.length;
+
+    const totalRevenueEl = document.getElementById("totalRevenueMetric");
+    if (totalRevenueEl) totalRevenueEl.textContent = dashboardMoney(revenue);
+
+    const pendingOrdersEl = document.getElementById("pendingOrdersMetric");
+    if (pendingOrdersEl) pendingOrdersEl.textContent = pending;
+
+    const activeTablesEl = document.getElementById("activeTablesMetric");
+    if (activeTablesEl) activeTablesEl.textContent = `${tables.length} active`;
+
     document.getElementById("lastTokenMetric").textContent = lastToken ? `#${String(lastToken).padStart(4, "0")}` : "#0000";
     document.getElementById("totalTokensMetric").textContent = totalTokens;
     document.getElementById("completedTokensMetric").textContent = completedTokens;
@@ -2001,7 +2035,9 @@ function initAdminDashboard() {
     document.getElementById("cancelledTokensMetric").textContent = cancelledTokens;
     document.getElementById("tokenPercentMetric").textContent = `${tokenPercent}%`;
     document.getElementById("tokenProgressBar").style.width = `${tokenPercent}%`;
-    document.getElementById("ordersTrend").textContent = orders.length === 1 ? "1 live order" : `${orders.length} live orders`;
+
+    const ordersTrendEl = document.getElementById("ordersTrend");
+    if (ordersTrendEl) ordersTrendEl.textContent = orders.length === 1 ? "1 live order" : `${orders.length} live orders`;
   }
 
   function renderTopItems() {
@@ -2217,6 +2253,16 @@ function initAdminDashboard() {
     const select = scope.querySelector(`[data-status-for="${orderId}"]`);
     if (!select) return;
     await updateOrderStatus(orderId, select.value);
+  });
+
+  counterTableSelect?.addEventListener("change", (e) => {
+    hasManuallyToggledCounterDetails = false;
+    setDetailsExpanded(e.target.value !== "");
+  });
+
+  toggleBtn?.addEventListener("click", () => {
+    hasManuallyToggledCounterDetails = true;
+    setDetailsExpanded(!isCounterDetailsExpanded);
   });
 
   counterAddItem?.addEventListener("click", () => addCounterItem());
@@ -2445,6 +2491,13 @@ function initAdminAnalytics() {
     document.getElementById("analyticsRevenue").textContent = adminMoney(payload.revenue);
     document.getElementById("analyticsOrders").textContent = payload.order_count;
     document.getElementById("analyticsAov").textContent = `Average ${adminMoney(payload.average_order_value)}`;
+    
+    const pendingOrdersEl = document.getElementById("analyticsPendingOrders");
+    if (pendingOrdersEl) pendingOrdersEl.textContent = payload.pending_orders_count !== undefined ? payload.pending_orders_count : 0;
+    
+    const activeTablesEl = document.getElementById("analyticsActiveTables");
+    if (activeTablesEl) activeTablesEl.textContent = payload.active_tables_count !== undefined ? payload.active_tables_count : 0;
+
     document.getElementById("analyticsPeakHour").textContent = payload.peak_hour === null
       ? "--"
       : `${String(payload.peak_hour).padStart(2, "0")}:00`;

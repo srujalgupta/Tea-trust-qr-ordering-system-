@@ -5,95 +5,161 @@
 {% block admin_title %}Dashboard{% endblock %}
 
 {% block content %}
-  <section class="metric-grid" data-table-count="{{ table_count }}">
-    <article class="metric-card metric-blue">
-      <span class="metric-icon">O</span>
-      <div>
-        <p>Total Orders</p>
-        <strong id="totalOrdersMetric">0</strong>
-        <small id="ordersTrend">Live dashboard</small>
-      </div>
-    </article>
-    <article class="metric-card metric-green">
-      <span class="metric-icon">R</span>
-      <div>
-        <p>Total Revenue</p>
-        <strong id="totalRevenueMetric">INR 0</strong>
-        <small>Cash and paid orders</small>
-      </div>
-    </article>
-    <article class="metric-card metric-orange">
-      <span class="metric-icon">P</span>
-      <div>
-        <p>Pending Orders</p>
-        <strong id="pendingOrdersMetric">0</strong>
-        <small>Needs kitchen action</small>
-      </div>
-    </article>
-    <article class="metric-card metric-purple">
-      <span class="metric-icon">T</span>
-      <div>
-        <p>Active Tables</p>
-        <strong id="activeTablesMetric">0 / {{ table_count }}</strong>
-        <small>QR tables online</small>
-      </div>
-    </article>
+  <!-- 1. Delivery Apps Quick Access (Compact Horizontal Bar) -->
+  <section class="delivery-quick-access admin-panel">
+    <div class="delivery-bar-label">
+      <h2>Delivery Portals</h2>
+      <p class="helper-text">Quick access to official partner portals</p>
+    </div>
+    <div class="delivery-bar-actions">
+      <a class="delivery-app-chip zomato-link" href="https://www.zomato.com/partners/login" target="_blank" rel="noopener noreferrer">
+        <span class="chip-icon">Z</span> Zomato Partner
+      </a>
+      <a class="delivery-app-chip swiggy-link" href="https://partner.swiggy.com/login" target="_blank" rel="noopener noreferrer">
+        <span class="chip-icon">S</span> Swiggy Partner
+      </a>
+    </div>
   </section>
 
-  <section class="dashboard-panels counter-order-section">
-    <article class="dashboard-card counter-order-panel">
-      <header class="panel-header">
-        <div>
-          <h2>Counter Order</h2>
-          <p class="helper-text">Create an order for a customer at the counter and choose the table.</p>
-        </div>
-      </header>
-
-      <form id="counterOrderForm" class="counter-order-form">
-        <div class="counter-order-grid">
-          <label>
-            Table
-            <select id="counterTableSelect" required>
-              <option value="">Select table</option>
-            </select>
-          </label>
-          <label>
-            Customer
-            <input id="counterCustomerName" autocomplete="name" placeholder="Guest">
-          </label>
-          <label>
-            Phone
-            <input id="counterCustomerPhone" autocomplete="tel" inputmode="tel" placeholder="Optional">
-          </label>
-        </div>
-
-        <div class="counter-item-picker">
-          <div class="counter-search-field">
-            <input id="counterItemSearch" type="search" placeholder="Product name / no." autocomplete="off" role="combobox" aria-expanded="false" aria-controls="counterItemSuggestions" aria-autocomplete="list" aria-label="Search menu items">
-            <div id="counterItemSuggestions" class="counter-item-suggestions" role="listbox" hidden></div>
+  <!-- 2. Main Operational Layout (Two Columns) -->
+  <div class="dashboard-operational-grid">
+    <!-- Left Column: Recent Orders (Wide) -->
+    <div class="dashboard-col-left">
+      <article class="dashboard-card recent-orders-panel">
+        <header class="panel-header">
+          <div>
+            <h2>Recent Orders</h2>
+            <p id="alertsStatus" class="helper-text">Sound alerts are off</p>
           </div>
-          <select id="counterItemSelect" aria-label="Menu item">
-            <option value="">Loading menu...</option>
-          </select>
-          <input id="counterItemQty" type="number" min="1" value="1" aria-label="Quantity">
-          <button id="counterAddItem" class="button" type="button">Add item</button>
+          <div class="panel-controls">
+            <button id="enableAlertsButton" class="button mini-button" type="button">Enable sound</button>
+            <select id="orderStatusFilter" class="compact-input" aria-label="Filter orders by status">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="preparing">Preparing</option>
+              <option value="ready">Ready</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </header>
+        <div class="table-wrap">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Table</th>
+                <th>Items</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Time</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="recentOrdersBody"></tbody>
+          </table>
         </div>
+        <section id="ordersBoard" class="orders-grid compact-orders" aria-live="polite"></section>
+      </article>
+    </div>
 
-        <div id="counterOrderItems" class="counter-order-items"></div>
-        <label>
-          Notes
-          <textarea id="counterOrderNotes" placeholder="Special instructions"></textarea>
-        </label>
-        <div class="counter-order-footer">
-          <strong id="counterOrderTotal">INR 0.00</strong>
-          <button class="button primary" type="submit">Create order</button>
+    <!-- Right Column: Counter Order & Today's Tokens (Narrow) -->
+    <div class="dashboard-col-right">
+      <!-- Counter Order Card -->
+      <article class="dashboard-card counter-order-panel">
+        <header class="panel-header">
+          <div>
+            <h2>Counter Order</h2>
+            <p class="helper-text">Create an order for a customer at the counter.</p>
+          </div>
+        </header>
+
+        <form id="counterOrderForm" class="counter-order-form">
+          <div class="counter-table-selector-row">
+            <label class="table-select-label">
+              Table Selection
+              <select id="counterTableSelect" required>
+                <option value="">Select table</option>
+              </select>
+            </label>
+            <button id="toggleCounterOrderDetails" class="button secondary mini-button" type="button" aria-expanded="false">
+              Expand Details
+            </button>
+          </div>
+
+          <!-- Collapsible details section -->
+          <div id="counterOrderDetailsSection" class="counter-order-details-section collapsed">
+            <div class="counter-order-grid">
+              <label>
+                Customer
+                <input id="counterCustomerName" autocomplete="name" placeholder="Guest">
+              </label>
+              <label>
+                Phone
+                <input id="counterCustomerPhone" autocomplete="tel" inputmode="tel" placeholder="Optional">
+              </label>
+            </div>
+
+            <div class="counter-item-picker">
+              <div class="counter-search-field">
+                <input id="counterItemSearch" type="search" placeholder="Product name / no." autocomplete="off" role="combobox" aria-expanded="false" aria-controls="counterItemSuggestions" aria-autocomplete="list" aria-label="Search menu items">
+                <div id="counterItemSuggestions" class="counter-item-suggestions" role="listbox" hidden></div>
+              </div>
+              <select id="counterItemSelect" aria-label="Menu item">
+                <option value="">Loading menu...</option>
+              </select>
+              <input id="counterItemQty" type="number" min="1" value="1" aria-label="Quantity">
+              <button id="counterAddItem" class="button" type="button">Add item</button>
+            </div>
+
+            <div id="counterOrderItems" class="counter-order-items"></div>
+            <label>
+              Notes
+              <textarea id="counterOrderNotes" placeholder="Special instructions"></textarea>
+            </label>
+            <div class="counter-order-footer">
+              <strong id="counterOrderTotal">INR 0.00</strong>
+              <button class="button primary" type="submit">Create order</button>
+            </div>
+          </div>
+          <p id="counterOrderMessage" class="helper-text" role="status"></p>
+        </form>
+      </article>
+
+      <!-- Today's Tokens Card -->
+      <article class="dashboard-card tokens-panel">
+        <header class="panel-header">
+          <h2>Today's Tokens</h2>
+          <span class="panel-link">Today</span>
+        </header>
+        <div class="token-summary">
+          <div>
+            <span>Last Token</span>
+            <strong id="lastTokenMetric">#0000</strong>
+          </div>
+          <div>
+            <span>Total Tokens</span>
+            <strong id="totalTokensMetric">0</strong>
+          </div>
         </div>
-        <p id="counterOrderMessage" class="helper-text" role="status"></p>
-      </form>
-    </article>
-  </section>
+        <div class="token-progress-row">
+          <span>Token Status</span>
+          <strong id="tokenPercentMetric">0%</strong>
+        </div>
+        <div class="token-progress">
+          <span id="tokenProgressBar"></span>
+        </div>
+        <div class="token-state-grid">
+          <div><span class="dot dot-green"></span>Completed<strong id="completedTokensMetric">0</strong></div>
+          <div><span class="dot dot-orange"></span>Pending<strong id="pendingTokensMetric">0</strong></div>
+          <div><span class="dot dot-red"></span>Cancelled<strong id="cancelledTokensMetric">0</strong></div>
+        </div>
+      </article>
+    </div>
+  </div>
 
-  <section class="dashboard-panels">
+  <!-- 3. Historical Overview Section (Sales Overview & Top Selling Items) -->
+  <div class="dashboard-historical-grid">
     <article class="dashboard-card sales-panel">
       <header class="panel-header">
         <h2>Sales Overview</h2>
@@ -105,105 +171,16 @@
       <div id="salesChart" class="sales-chart" aria-label="Sales chart"></div>
     </article>
 
-    <article class="dashboard-card">
+    <article class="dashboard-card top-selling-panel">
       <header class="panel-header">
         <h2>Top Selling Items</h2>
         <span class="panel-link">Live</span>
       </header>
       <div id="topItemsList" class="top-items-list"></div>
     </article>
-  </section>
+  </div>
 
-  <section class="dashboard-panels dashboard-panels-bottom">
-    <article class="dashboard-card recent-orders-panel">
-      <header class="panel-header">
-        <div>
-          <h2>Recent Orders</h2>
-          <p id="alertsStatus" class="helper-text">Sound alerts are off</p>
-        </div>
-        <div class="panel-controls">
-          <button id="enableAlertsButton" class="button mini-button" type="button">Enable sound</button>
-          <select id="orderStatusFilter" class="compact-input" aria-label="Filter orders by status">
-            <option value="">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="preparing">Preparing</option>
-            <option value="ready">Ready</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
-      </header>
-      <div class="table-wrap">
-        <table class="orders-table">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Table</th>
-              <th>Items</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Time</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="recentOrdersBody"></tbody>
-        </table>
-      </div>
-      <section id="ordersBoard" class="orders-grid compact-orders" aria-live="polite"></section>
-    </article>
-
-    <article class="dashboard-card tokens-panel">
-      <header class="panel-header">
-        <h2>Today's Tokens</h2>
-        <span class="panel-link">Today</span>
-      </header>
-      <div class="token-summary">
-        <div>
-          <span>Last Token</span>
-          <strong id="lastTokenMetric">#0000</strong>
-        </div>
-        <div>
-          <span>Total Tokens</span>
-          <strong id="totalTokensMetric">0</strong>
-        </div>
-      </div>
-      <div class="token-progress-row">
-        <span>Token Status</span>
-        <strong id="tokenPercentMetric">0%</strong>
-      </div>
-      <div class="token-progress">
-        <span id="tokenProgressBar"></span>
-      </div>
-      <div class="token-state-grid">
-        <div><span class="dot dot-green"></span>Completed<strong id="completedTokensMetric">0</strong></div>
-        <div><span class="dot dot-orange"></span>Pending<strong id="pendingTokensMetric">0</strong></div>
-        <div><span class="dot dot-red"></span>Cancelled<strong id="cancelledTokensMetric">0</strong></div>
-      </div>
-    </article>
-  </section>
-
-  <section class="dashboard-panels">
-    <article class="dashboard-card delivery-access-panel">
-      <header class="panel-header">
-        <div>
-          <h2>Delivery Apps</h2>
-          <p class="helper-text">Official partner portals</p>
-        </div>
-      </header>
-
-      <div class="delivery-app-actions" aria-label="Delivery app partner portals">
-        <a class="delivery-app-button zomato-link" href="https://www.zomato.com/partners/login" target="_blank" rel="noopener noreferrer">
-          <span>Z</span>
-          <strong>Open Zomato</strong>
-        </a>
-        <a class="delivery-app-button swiggy-link" href="https://partner.swiggy.com/login" target="_blank" rel="noopener noreferrer">
-          <span>S</span>
-          <strong>Open Swiggy</strong>
-        </a>
-      </div>
-    </article>
-  </section>
-
+  <!-- Order Detail Dialog Modal -->
   <dialog id="orderDetailDialog" class="modal-dialog">
     <form method="dialog" class="modal-shell">
       <header class="modal-header">
